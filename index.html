@@ -1,1453 +1,803 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scream and Run - Hardcore Atmospheric Horror</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background-color: #000000;
-            color: #ffffff;
-            font-family: 'Courier New', Courier, monospace;
-            overflow: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-        }
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 5;
-            box-shadow: 0 0 4px #ffffff;
-        }
-        #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 5;
-            background: rgba(5, 5, 5, 0.95);
-            padding: 18px 22px;
-            border-radius: 4px;
-            border: 1px solid #222222;
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.9);
-            min-width: 280px;
-        }
-        .hud-item {
-            margin-bottom: 10px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            font-size: 0.85rem;
-            color: #cccccc;
-            text-transform: uppercase;
-        }
-        .hud-value {
-            color: #ffffff;
-            font-weight: normal;
-        }
-        #stamina-container {
-            width: 100%;
-            height: 8px;
-            background: #111111;
-            border: 1px solid #333333;
-            margin-top: 6px;
-            overflow: hidden;
-        }
-        #stamina-bar {
-            width: 100%;
-            height: 100%;
-            background: #00e5ff;
-            transition: width 0.1s linear;
-        }
-        #sanity-container {
-            width: 100%;
-            height: 8px;
-            background: #111111;
-            border: 1px solid #333333;
-            margin-top: 6px;
-            overflow: hidden;
-        }
-        #sanity-bar {
-            width: 100%;
-            height: 100%;
-            background: #ff0055;
-            transition: width 0.1s linear;
-        }
-        #interaction-prompt {
-            position: absolute;
-            top: 58%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: #ffcc00;
-            padding: 12px 24px;
-            border-radius: 2px;
-            border: 1px solid #ffcc00;
-            font-size: 1rem;
-            display: none;
-            pointer-events: none;
-            z-index: 5;
-            text-align: center;
-            letter-spacing: 1px;
-            box-shadow: 0 0 15px rgba(255, 204, 0, 0.2);
-        }
-        #msg-log {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: #ff3333;
-            padding: 14px 32px;
-            border-radius: 4px;
-            border: 1px solid #ff3333;
-            font-size: 1.05rem;
-            display: none;
-            pointer-events: none;
-            z-index: 5;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px rgba(255,51,51,0.5);
-        }
-        .screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #030303;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        .hidden {
-            display: none !important;
-        }
-        h1 {
-            font-size: 3.8rem;
-            margin-bottom: 16px;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-        }
-        p {
-            font-size: 1rem;
-            color: #888888;
-            margin-bottom: 24px;
-            text-align: center;
-            max-width: 640px;
-            line-height: 1.6;
-        }
-        .danger { color: #cc0000; text-shadow: 0 0 25px #ff0000; }
-        .success { color: #00ff66; text-shadow: 0 0 25px #00ff66; }
-        button {
-            padding: 16px 42px;
-            font-size: 1.1rem;
-            background: #880000;
-            color: #ffffff;
-            border: 1px solid #ff3333;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            letter-spacing: 2px;
-            border-radius: 2px;
-            box-shadow: 0 0 15px rgba(200, 0, 0, 0.5);
-            transition: all 0.2s ease;
-        }
-        button:hover { 
-            background: #ff0000; 
-            color: #000000;
-            box-shadow: 0 0 25px rgba(255, 0, 0, 0.9);
-        }
-        #jumpscare-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #200000;
-            z-index: 999;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        #jumpscare-face {
-            font-size: 18rem;
-            color: #ffffff;
-            text-shadow: 0 0 50px #ff0000, 0 0 100px #000000;
-            animation: hyperPulse 0.03s infinite alternate;
-        }
-        @keyframes hyperPulse {
-            0% { transform: scale(0.95) rotate(-6deg) translate(-10px, -10px); filter: invert(0); }
-            50% { transform: scale(1.4) rotate(6deg) translate(10px, 10px); filter: invert(0.8); }
-            100% { transform: scale(1.1) rotate(-3deg) translate(-5px, 5px); filter: invert(0); }
-        }
-        #vignette {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            box-shadow: inset 0 0 180px rgba(0, 0, 0, 0.98);
-            pointer-events: none;
-            z-index: 4;
-        }
-        #static-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            opacity: 0.04;
-            pointer-events: none;
-            z-index: 3;
-        }
-        #inventory-hud {
-            margin-top: 10px;
-            border-top: 1px dashed #333333;
-            padding-top: 8px;
-        }
-        .inv-slot {
-            font-size: 0.8rem;
-            color: #666666;
-            margin-top: 4px;
-        }
-        .inv-slot.active {
-            color: #00ff66;
-        }
-    </style>
-    <!-- Three.js Engine v128 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cat Escape 3D</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050505;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .hud-element {
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 12px 20px;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 18px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      backdrop-filter: blur(4px);
+    }
+    #top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    #status-msg {
+      font-size: 20px;
+      color: #ff3333;
+      transition: color 0.3s ease;
+    }
+    #status-msg.has-key {
+      color: #33ff33;
+    }
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 11;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+    }
+    #crosshair::before {
+      top: 4px;
+      left: 0;
+      width: 10px;
+      height: 2px;
+    }
+    #crosshair::after {
+      top: 0;
+      left: 4px;
+      width: 2px;
+      height: 10px;
+    }
+    #screen-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      pointer-events: auto;
+    }
+    #screen-overlay h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      color: #ff3333;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px rgba(255,51,51,0.5);
+    }
+    #screen-overlay p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      max-width: 600px;
+      text-align: center;
+      line-height: 1.6;
+      color: #ccc;
+    }
+    .btn {
+      background: #ff3333;
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      font-size: 22px;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4);
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+    }
+    .btn:hover {
+      background: #ff5555;
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(255, 51, 51, 0.6);
+    }
+    #fps-counter {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-family: monospace;
+      font-size: 14px;
+      color: #00ff00;
+      background: rgba(0,0,0,0.5);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    #instructions {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-size: 14px;
+      color: #aaa;
+      background: rgba(0,0,0,0.5);
+      padding: 8px 12px;
+      border-radius: 4px;
+      text-align: right;
+    }
+  </style>
 </head>
 <body>
 
-<canvas id="static-canvas"></canvas>
-<div id="canvas-container"></div>
-<div id="vignette"></div>
-<div id="crosshair"></div>
+  <div id="canvas-container"></div>
+  
+  <div id="crosshair"></div>
 
-<div id="hud">
-    <div class="hud-item">OBJECTIVE: <span class="hud-value" id="obj-text">Find Exit Keycard</span></div>
-    <div class="hud-item">KEYS FOUND: <span class="hud-value" id="keys-count">0 / 3</span></div>
-    
-    <div class="hud-item" style="margin-top: 12px;">STAMINA</div>
-    <div id="stamina-container"><div id="stamina-bar"></div></div>
-    
-    <div class="hud-item" style="margin-top: 10px;">SANITY</div>
-    <div id="sanity-container"><div id="sanity-bar"></div></div>
-
-    <div id="inventory-hud">
-        <div class="hud-item" style="margin-bottom:4px;">INVENTORY</div>
-        <div class="inv-slot" id="inv-key1">[ ] Sector Alpha Keycard</div>
-        <div class="inv-slot" id="inv-key2">[ ] Sector Beta Keycard</div>
-        <div class="inv-slot" id="inv-key3">[ ] Main Exit Override Key</div>
-        <div class="inv-slot" id="inv-battery">[ ] Spare Batteries: <span id="bat-count">2</span></div>
+  <div id="ui-layer">
+    <div id="top-bar">
+      <div class="hud-element" id="status-msg">FIND THE KEY TO UNLOCK THE EXIT</div>
+      <div class="hud-element" id="keys-count">KEY: 0/1</div>
     </div>
-</div>
+    <div id="fps-counter">FPS: 60</div>
+    <div id="instructions">
+      [WASD] Move | [MOUSE] Look | [SHIFT] Run
+    </div>
+  </div>
 
-<div id="interaction-prompt">Press [E] to Search</div>
-<div id="msg-log"></div>
-
-<div id="start-screen" class="screen">
-    <h1 class="danger">SCREAM AND RUN</h1>
-    <p>You are trapped inside the abandoned Oakridge High School. The corridors are pitch black, fully opaque, and shrouded in dense fog. The Cat in the Hat stalks these halls. Find all 3 security keys to escape. If he touches you, you die immediately.</p>
-    <p style="color:#666; font-size: 0.85rem; margin-bottom: 30px;">
-        WASD = Move | SHIFT = Sprint | E = Interact / Search | F = Toggle Flashlight | R = Reload Battery | Mouse = Look
+  <div id="screen-overlay">
+    <h1 id="overlay-title">CAT ESCAPE</h1>
+    <p id="overlay-desc">
+      Explore the maze and find the golden key. Avoid the Cat in the Hat at all costs—one touch means instant death. Once you collect the key, a bright green door will spawn. Touch the green door to escape!
     </p>
-    <button id="start-btn">ENTER THE SCHOOL</button>
-</div>
-
-<div id="death-screen" class="screen hidden">
-    <h1 class="danger">YOU DIED!</h1>
-    <p id="death-reason">The Cat in the Hat caught you in the dark...</p>
-    <button onclick="restartGame()">RESTART SYSTEM</button>
-</div>
-
-<div id="win-screen" class="screen hidden">
-    <h1 class="success">YOU ESCAPED!</h1>
-    <p>You unlocked the main security doors and escaped into the night alive!</p>
-    <button onclick="restartGame()">PLAY AGAIN</button>
-</div>
-
-<div id="jumpscare-overlay">
-    <div id="jumpscare-face">🎩👁️👁️</div>
-</div>
-
-<script>
-// ============================================================================
-// GLOBAL CONSTANTS & CONFIGURATION
-// ============================================================================
-const CONFIG = {
-    MAP_SIZE: 120,
-    WALL_HEIGHT: 5.0,
-    PLAYER_SPEED: 4.2,
-    SPRINT_MULTIPLIER: 1.75,
-    STAMINA_DEPLETION: 28,
-    STAMINA_RECOVERY: 16,
-    MONSTER_BASE_SPEED: 6.2,
-    MONSTER_ENRAGE_SPEED: 8.5,
-    SANITY_DRAK_RATE: 2.5,
-    SANITY_RECOVER_RATE: 5.0,
-    FLASHLIGHT_BATTERY_DRAIN: 1.2,
-    TOTAL_KEYS_REQUIRED: 3,
-    COLLISION_RADIUS: 0.6
-};
-
-// ============================================================================
-// AUDIO SYNTHESIZER ENGINE (WEB AUDIO API)
-// ============================================================================
-class AudioEngine {
-    constructor() {
-        this.ctx = null;
-        this.isMuted = false;
-        this.masterGain = null;
-        this.ambientOsc1 = null;
-        this.ambientOsc2 = null;
-        this.musicInterval = null;
-        this.heartbeatInterval = null;
-        this.heartRate = 1000;
-    }
-
-    init() {
-        if (this.ctx) return;
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioCtx();
-        
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-        this.masterGain.connect(this.ctx.destination);
-
-        this.startAmbientDrone();
-        this.startGenerativeMusic();
-        this.startHeartbeatSystem();
-    }
-
-    playTone(freq, type, duration, vol = 0.1, pitchDecay = false) {
-        if (!this.ctx) return;
-        try {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-            
-            if (pitchDecay) {
-                osc.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + duration);
-            }
-
-            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-
-            osc.connect(gain);
-            gain.connect(this.masterGain);
-
-            osc.start();
-            osc.stop(this.ctx.currentTime + duration);
-        } catch (e) {
-            console.error("Audio error:", e);
-        }
-    }
-
-    playNoise(duration, vol = 0.05) {
-        if (!this.ctx) return;
-        const bufferSize = this.ctx.sampleRate * duration;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 400;
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterGain);
-
-        noise.start();
-    }
-
-    startAmbientDrone() {
-        if (!this.ctx) return;
-        
-        // Low sub-bass drone
-        this.ambientOsc1 = this.ctx.createOscillator();
-        const gain1 = this.ctx.createGain();
-        this.ambientOsc1.type = 'sawtooth';
-        this.ambientOsc1.frequency.setValueAtTime(38, this.ctx.currentTime);
-        gain1.gain.setValueAtTime(0.08, this.ctx.currentTime);
-        
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(120, this.ctx.currentTime);
-
-        this.ambientOsc1.connect(filter);
-        filter.connect(gain1);
-        gain1.connect(this.masterGain);
-        this.ambientOsc1.start();
-    }
-
-    startGenerativeMusic() {
-        const horrorScale = [103.83, 110.00, 130.81, 138.59, 155.56, 174.61, 185.00, 207.65];
-        this.musicInterval = setInterval(() => {
-            if (gameState.isGameOver || gameState.isPaused) return;
-            
-            if (Math.random() < 0.6) {
-                const note = horrorScale[Math.floor(Math.random() * horrorScale.length)];
-                const duration = 1.5 + Math.random() * 2.5;
-                this.playTone(note, 'sine', duration, 0.025);
-            }
-
-            if (Math.random() < 0.15) {
-                this.playNoise(0.8, 0.03);
-            }
-        }, 1400);
-    }
-
-    startHeartbeatSystem() {
-        const triggerBeat = () => {
-            if (gameState.isGameOver) return;
-            if (gameState.sanity < 50 || gameState.monsterDistance < 15) {
-                this.playTone(55, 'triangle', 0.12, 0.2, true);
-                setTimeout(() => {
-                    this.playTone(45, 'triangle', 0.1, 0.15, true);
-                }, 140);
-            }
-            
-            // Adjust heart rate based on tension
-            let factor = Math.min(1, gameState.monsterDistance / 30);
-            this.heartRate = 400 + (factor * 700);
-            setTimeout(triggerBeat, this.heartRate);
-        };
-        triggerBeat();
-    }
-
-    playFootstep() {
-        const freq = 40 + Math.random() * 25;
-        this.playTone(freq, 'triangle', 0.08, 0.06);
-    }
-
-    playMonsterStep() {
-        const freq = 25 + Math.random() * 15;
-        this.playTone(freq, 'sawtooth', 0.25, 0.18);
-        this.playNoise(0.15, 0.04);
-    }
-
-    playSearchSound() {
-        this.playTone(280, 'sine', 0.1, 0.05);
-        setTimeout(() => this.playTone(340, 'sine', 0.12, 0.05), 90);
-    }
-
-    playKeyFoundSound() {
-        if (!this.ctx) return;
-        this.playTone(523.25, 'sine', 0.2, 0.1);
-        setTimeout(() => this.playTone(659.25, 'sine', 0.2, 0.1), 120);
-        setTimeout(() => this.playTone(783.99, 'sine', 0.4, 0.12), 240);
-    }
-
-    playFlashlightClick() {
-        this.playTone(800, 'square', 0.03, 0.05);
-    }
-
-    playBatteryReload() {
-        this.playTone(300, 'sine', 0.08, 0.08);
-        setTimeout(() => this.playTone(450, 'sine', 0.12, 0.08), 80);
-    }
-
-    playJumpscareSound() {
-        if (!this.ctx) return;
-        
-        // Screeching High Frequency Stack
-        for (let i = 0; i < 5; i++) {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(1200 + (i * 350), this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 1.5);
-            
-            gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.5);
-
-            osc.connect(gain);
-            gain.connect(this.masterGain);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 1.5);
-        }
-
-        // Sub-Bass Explosion
-        const bass = this.ctx.createOscillator();
-        const bassGain = this.ctx.createGain();
-        bass.type = 'square';
-        bass.frequency.setValueAtTime(120, this.ctx.currentTime);
-        bass.frequency.linearRampToValueAtTime(20, this.ctx.currentTime + 1.5);
-        
-        bassGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
-        bassGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.5);
-
-        bass.connect(bassGain);
-        bassGain.connect(this.masterGain);
-        bass.start();
-        bass.stop(this.ctx.currentTime + 1.5);
-    }
-
-    stopAll() {
-        if (this.musicInterval) clearInterval(this.musicInterval);
-        if (this.ctx) this.ctx.close();
-    }
-}
-
-const audio = new AudioEngine();
-
-// ============================================================================
-// GAME STATE MANAGEMENT
-// ============================================================================
-const gameState = {
-    isStarted: false,
-    isGameOver: false,
-    isPaused: false,
-    hasEscaped: false,
-    stamina: 100,
-    sanity: 100,
-    battery: 100,
-    spareBatteries: 2,
-    flashlightOn: true,
-    keysFound: 0,
-    hasKey1: false,
-    hasKey2: false,
-    hasKey3: false,
-    monsterDistance: 100,
-    monsterEnraged: false,
-    activeInteractable: null
-};
-
-// ============================================================================
-// THREE.JS CORE SETUP & GRAPHICS
-// ============================================================================
-let scene, camera, renderer;
-let flashlight, flashlightTarget;
-let raycaster;
-
-// Input tracking
-const keys = {
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    sprint: false
-};
-
-let moveVelocity = new THREE.Vector3();
-let prevTime = performance.now();
-let yaw = 0, pitch = 0;
-let isPointerLocked = false;
-
-// Entities & World storage
-let worldWalls = [];
-let worldBoundingBoxes = [];
-let interactiveObjects = [];
-let flickeringLights = [];
-let monsterGroup, monsterHeadMesh;
-let monsterPosition = new THREE.Vector3(45, 0, -45);
-let monsterVelocity = new THREE.Vector3();
-
-// Timers
-let footstepTimer = 0;
-let monsterStepTimer = 0;
-let monsterTeleportTimer = 0;
-
-// Procedural Canvas Texture Generator (Opaque Walls, Floors, Doors)
-function createOpaqueWallTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-
-    // Base Opaque Dark Concrete / Brick Fill
-    ctx.fillStyle = '#111217';
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Brick Pattern
-    ctx.strokeStyle = '#050608';
-    ctx.lineWidth = 4;
-    const rows = 16;
-    const cols = 8;
-    const rh = 512 / rows;
-    const cw = 512 / cols;
-
-    for (let i = 0; i <= rows; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, i * rh);
-        ctx.lineTo(512, i * rh);
-        ctx.stroke();
-    }
-
-    for (let i = 0; i < rows; i++) {
-        const offset = (i % 2 === 0) ? 0 : cw / 2;
-        for (let j = 0; j <= cols + 1; j++) {
-            ctx.beginPath();
-            ctx.moveTo(j * cw - offset, i * rh);
-            ctx.lineTo(j * cw - offset, (i + 1) * rh);
-            ctx.stroke();
-        }
-    }
-
-    // Grunge & Dirt Overlay (Fully Opaque Canvas)
-    for (let i = 0; i < 1500; i++) {
-        const x = Math.random() * 512;
-        const y = Math.random() * 512;
-        const shade = Math.floor(Math.random() * 20);
-        ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
-        ctx.fillRect(x, y, 2, 2);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(3, 2);
-    return texture;
-}
-
-function createOpaqueFloorTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-
-    // Dark Opaque School Tile Floor
-    ctx.fillStyle = '#08090c';
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Tile Grids
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 6;
-    const tileSize = 64;
-
-    for (let x = 0; x <= 512; x += tileSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 512);
-        ctx.stroke();
-    }
-
-    for (let y = 0; y <= 512; y += tileSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(512, y);
-        ctx.stroke();
-    }
-
-    // Scuffs and stains
-    ctx.fillStyle = '#030304';
-    for (let i = 0; i < 40; i++) {
-        const x = Math.random() * 512;
-        const y = Math.random() * 512;
-        const r = 5 + Math.random() * 25;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(16, 16);
-    return texture;
-}
-
-// OPAQUE MATERIALS SETUP (No transparency, non-see-through)
-const wallTex = createOpaqueWallTexture();
-const floorTex = createOpaqueFloorTexture();
-
-const materials = {
-    wall: new THREE.MeshStandardMaterial({
-        map: wallTex,
-        roughness: 0.95,
-        metalness: 0.05,
-        transparent: false,
-        opacity: 1.0
-    }),
-    floor: new THREE.MeshStandardMaterial({
-        map: floorTex,
-        roughness: 0.8,
-        metalness: 0.2,
-        transparent: false,
-        opacity: 1.0
-    }),
-    ceiling: new THREE.MeshStandardMaterial({
-        color: 0x050507,
-        roughness: 1.0,
-        transparent: false,
-        opacity: 1.0
-    }),
-    doorLocked: new THREE.MeshStandardMaterial({
-        color: 0x551111,
-        roughness: 0.6,
-        metalness: 0.4,
-        transparent: false,
-        opacity: 1.0
-    }),
-    doorUnlocked: new THREE.MeshStandardMaterial({
-        color: 0x115511,
-        roughness: 0.6,
-        metalness: 0.4,
-        transparent: false,
-        opacity: 1.0
-    }),
-    backpack: new THREE.MeshStandardMaterial({
-        color: 0x884411,
-        roughness: 0.9,
-        transparent: false,
-        opacity: 1.0
-    }),
-    locker: new THREE.MeshStandardMaterial({
-        color: 0x222830,
-        roughness: 0.5,
-        metalness: 0.8,
-        transparent: false,
-        opacity: 1.0
-    })
-};
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-function initEngine() {
-    const container = document.getElementById('canvas-container');
-
-    // Scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x010103);
-    scene.fog = new THREE.FogExp2(0x010103, 0.085); // Pitch black dense horror fog
-
-    // Camera
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.7, 0);
-
-    // Ambient Darkness
-    const ambientLight = new THREE.AmbientLight(0x0a0a12, 0.4);
-    scene.add(ambientLight);
-
-    // Player Flashlight
-    flashlight = new THREE.SpotLight(0xfff0dd, 4.0, 22, Math.PI / 5, 0.4, 1.2);
-    flashlight.position.set(0, 0, 0);
-    
-    flashlightTarget = new THREE.Object3D();
-    flashlightTarget.position.set(0, 0, -1);
-    camera.add(flashlightTarget);
-    flashlight.target = flashlightTarget;
-    
-    camera.add(flashlight);
-    scene.add(camera);
-
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    raycaster = new THREE.Raycaster();
-
-    // Build World Architecture
-    buildSchoolLayout();
-    spawnLightingFixtures();
-    spawnContainersAndItems();
-    spawnCatInHatMonster();
-
-    // Event Listeners
-    window.addEventListener('resize', onWindowResize);
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
-    document.addEventListener('mousemove', onMouseMove);
-    
-    document.getElementById('start-btn').addEventListener('click', startGame);
-    
-    // Background static noise canvas initialization
-    initStaticCanvas();
-}
-
-// ============================================================================
-// SCHOOL ARCHITECTURE GENERATOR (OPAQUE STRUCTURES)
-// ============================================================================
-function buildSchoolLayout() {
-    const size = CONFIG.MAP_SIZE;
-    const h = CONFIG.WALL_HEIGHT;
-
-    // Floor
-    const floorGeo = new THREE.PlaneGeometry(size, size);
-    const floorMesh = new THREE.Mesh(floorGeo, materials.floor);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.receiveShadow = true;
-    scene.add(floorMesh);
-
-    // Ceiling
-    const ceilingMesh = new THREE.Mesh(floorGeo, materials.ceiling);
-    ceilingMesh.position.y = h;
-    ceilingMesh.rotation.x = Math.PI / 2;
-    scene.add(ceilingMesh);
-
-    // Outer Perimeter Walls
-    createWallBlock(0, h/2, -size/2, size, h, 1.5);
-    createWallBlock(0, h/2, size/2, size, h, 1.5);
-    createWallBlock(-size/2, h/2, 0, 1.5, h, size);
-    createWallBlock(size/2, h/2, 0, 1.5, h, size);
-
-    // Internal Corridor & Classroom Maze Grid (Fully Opaque)
-    // Sector 1: West Wing Classrooms
-    createWallBlock(-30, h/2, -20, 2, h, 40);
-    createWallBlock(-45, h/2, 0, 30, h, 2);
-    createWallBlock(-45, h/2, -20, 30, h, 2);
-
-    // Sector 2: East Wing Classrooms & Library
-    createWallBlock(30, h/2, 20, 2, h, 50);
-    createWallBlock(45, h/2, -10, 30, h, 2);
-    createWallBlock(20, h/2, 35, 20, h, 2);
-
-    // Sector 3: Central Hallway & Lockers
-    createWallBlock(-10, h/2, -35, 2, h, 30);
-    createWallBlock(10, h/2, -35, 2, h, 30);
-    createWallBlock(0, h/2, 15, 40, h, 2);
-
-    // Sector 4: Storage Rooms
-    createWallBlock(-25, h/2, 35, 2, h, 30);
-    createWallBlock(25, h/2, -45, 2, h, 20);
-
-    // Exit Gate (Main Security Doors)
-    createExitDoorBlock(0, 1.8, size/2 - 1.5);
-}
-
-function createWallBlock(x, y, z, w, h, d) {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const mesh = new THREE.Mesh(geo, materials.wall);
-    mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-
-    worldWalls.push(mesh);
-
-    // Collision Box calculation
-    const box = new THREE.Box3().setFromObject(mesh);
-    worldBoundingBoxes.push(box);
-}
-
-function createExitDoorBlock(x, y, z) {
-    const group = new THREE.Group();
-    
-    // Door Frame
-    const frameGeo = new THREE.BoxGeometry(6.0, 4.2, 0.6);
-    const frameMesh = new THREE.Mesh(frameGeo, materials.locker);
-    frameMesh.position.y = 2.1;
-    group.add(frameMesh);
-
-    // Door Panels
-    const doorGeo = new THREE.BoxGeometry(5.2, 3.8, 0.4);
-    const doorMesh = new THREE.Mesh(doorGeo, materials.doorLocked);
-    doorMesh.position.y = 1.9;
-    group.add(doorMesh);
-
-    group.position.set(x, 0, z);
-    group.userData = {
-        isExitDoor: true,
-        interactText: "Unlock Main Exit Security Gate"
+    <button class="btn" id="start-btn">PLAY GAME</button>
+  </div>
+
+  <!-- Include Three.js for fast, optimized 3D graphics -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    /**
+     * GAME ENGINE & ARCHITECTURE
+     * Fully solid (opaque) rendering, no transparent/seethrough shaders for performance.
+     * Optimized spatial partitioning grid for collision & high performance.
+     */
+
+    // --- GAME STATE VARIABLES ---
+    const STATE = {
+      playing: false,
+      hasKey: false,
+      gameOver: false,
+      won: false,
+      fps: 60,
+      frameCount: 0,
+      lastFpsUpdate: performance.now()
     };
 
-    scene.add(group);
-    interactiveObjects.push(group);
-}
+    // --- CONFIGURATION & TUNING ---
+    const CONFIG = {
+      MAZE_SIZE: 15,
+      CELL_SIZE: 10,
+      WALL_HEIGHT: 8,
+      PLAYER_SPEED: 8.0,
+      PLAYER_RUN_SPEED: 14.0,
+      PLAYER_RADIUS: 0.8,
+      CAT_SPEED: 6.5,
+      CAT_RADIUS: 1.0,
+      FOV: 75,
+      RENDER_DISTANCE: 120
+    };
 
-// ============================================================================
-// DYNAMIC LIGHTS & ENVIRONMENT
-// ============================================================================
-function spawnLightingFixtures() {
-    const lightPositions = [
-        { x: -30, y: 4.5, z: -30 },
-        { x: -30, y: 4.5, z: 10 },
-        { x: 0, y: 4.5, z: -20 },
-        { x: 0, y: 4.5, z: 0 },
-        { x: 0, y: 4.5, z: 30 },
-        { x: 30, y: 4.5, z: -30 },
-        { x: 30, y: 4.5, z: 20 },
-        { x: -45, y: 4.5, z: -35 },
-        { x: 45, y: 4.5, z: 45 }
-    ];
+    // --- MAZE GRID GENERATION (Recursive Backtracker) ---
+    class MazeGenerator {
+      constructor(size) {
+        this.size = size;
+        this.grid = Array(size).fill(null).map(() => Array(size).fill(null).map(() => ({
+          visited: false,
+          walls: { N: true, S: true, E: true, W: true }
+        })));
+      }
 
-    lightPositions.forEach((pos, index) => {
-        const fixtureGeo = new THREE.BoxGeometry(2.0, 0.2, 0.8);
-        const fixtureMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        const fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
-        fixture.position.set(pos.x, pos.y, pos.z);
-        scene.add(fixture);
+      generate() {
+        const stack = [];
+        let current = { x: 0, z: 0 };
+        this.grid[0][0].visited = true;
+        let visitedCount = 1;
+        const totalCells = this.size * this.size;
 
-        const pointLight = new THREE.PointLight(0xffd5aa, 1.8, 18, 2.0);
-        pointLight.position.set(pos.x, pos.y - 0.3, pos.z);
-        pointLight.castShadow = true;
-        scene.add(pointLight);
-
-        flickeringLights.push({
-            light: pointLight,
-            fixtureMat: fixtureMat,
-            baseIntensity: 1.8,
-            nextFlickerTime: 0,
-            isBroken: Math.random() < 0.3
-        });
-    });
-}
-
-function updateFlickeringLights(time) {
-    flickeringLights.forEach(item => {
-        if (time > item.nextFlickerTime) {
-            if (item.isBroken) {
-                item.light.intensity = 0;
-                item.fixtureMat.color.setHex(0x050505);
-            } else {
-                const flicker = Math.random();
-                if (flicker < 0.25) {
-                    item.light.intensity = Math.random() * 0.3;
-                    item.fixtureMat.color.setHex(0x221100);
-                } else {
-                    item.light.intensity = item.baseIntensity + (Math.random() * 0.4 - 0.2);
-                    item.fixtureMat.color.setHex(0xffeedd);
-                }
-            }
-            item.nextFlickerTime = time + (Math.random() * 0.3 + 0.05);
+        while (visitedCount < totalCells) {
+          const neighbors = this.getUnvisitedNeighbors(current);
+          if (neighbors.length > 0) {
+            const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+            this.removeWall(current, next);
+            stack.push(current);
+            current = { x: next.x, z: next.z };
+            this.grid[current.z][current.x].visited = true;
+            visitedCount++;
+          } else if (stack.length > 0) {
+            current = stack.pop();
+          }
         }
-    });
-}
+        return this.grid;
+      }
 
-// ============================================================================
-// SEARCHABLE CONTAINERS & KEYS
-// ============================================================================
-function spawnContainersAndItems() {
-    const locations = [
-        { x: -45, z: -35, keyIndex: 1 },
-        { x: -45, z: -10, keyIndex: 0 },
-        { x: -20, z: -45, keyIndex: 0 },
-        { x: 45, z: -35, keyIndex: 2 },
-        { x: 45, z: 10, keyIndex: 0 },
-        { x: 35, z: 45, keyIndex: 3 },
-        { x: -15, z: 40, keyIndex: 0 },
-        { x: 15, z: -10, keyIndex: 0 }
-    ];
+      getUnvisitedNeighbors(cell) {
+        const neighbors = [];
+        const { x, z } = cell;
 
-    locations.forEach((loc, idx) => {
-        const group = new THREE.Group();
+        if (z > 0 && !this.grid[z - 1][x].visited) neighbors.push({ x, z: z - 1, dir: 'N' });
+        if (z < this.size - 1 && !this.grid[z + 1][x].visited) neighbors.push({ x, z: z + 1, dir: 'S' });
+        if (x < this.size - 1 && !this.grid[z][x + 1].visited) neighbors.push({ x: x + 1, z, dir: 'E' });
+        if (x > 0 && !this.grid[z][x - 1].visited) neighbors.push({ x: x - 1, z, dir: 'W' });
 
-        // Backpack Geometry
-        const mainBag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.5), materials.backpack);
-        mainBag.position.y = 0.5;
-        mainBag.castShadow = true;
-        group.add(mainBag);
+        return neighbors;
+      }
 
-        const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.2), materials.backpack);
-        pocket.position.set(0, 0.35, 0.3);
-        group.add(pocket);
+      removeWall(a, b) {
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
 
-        group.position.set(loc.x, 0, loc.z);
-        group.userData = {
-            isBackpack: true,
-            searched: false,
-            containsKey: loc.keyIndex, // 1: Key Alpha, 2: Key Beta, 3: Override Key, 0: Empty/Battery
-            containsBattery: Math.random() < 0.5,
-            interactText: "Search Backpack"
-        };
+        if (dx === 1) {
+          this.grid[a.z][a.x].walls.E = false;
+          this.grid[b.z][b.x].walls.W = false;
+        } else if (dx === -1) {
+          this.grid[a.z][a.x].walls.W = false;
+          this.grid[b.z][b.x].walls.E = false;
+        }
+        if (dz === 1) {
+          this.grid[a.z][a.x].walls.S = false;
+          this.grid[b.z][b.x].walls.N = false;
+        } else if (dz === -1) {
+          this.grid[a.z][a.x].walls.N = false;
+          this.grid[b.z][b.x].walls.S = false;
+        }
+      }
+    }
 
-        scene.add(group);
-        interactiveObjects.push(group);
-    });
-}
+    // --- THREE.JS SCENE SETUP ---
+    let scene, camera, renderer;
+    let playerObj, catObj, keyObj, doorObj;
+    let wallBoxes = [];
+    let clock = new THREE.Clock();
 
-// ============================================================================
-// THE CAT IN THE HAT MONSTER (3D MODEL & AI)
-// ============================================================================
-function spawnCatInHatMonster() {
-    monsterGroup = new THREE.Group();
+    // Input tracker
+    const keys = { w: false, a: false, s: false, d: false, shift: false };
+    let cameraRotation = { yaw: 0, pitch: 0 };
 
-    // Body (Tall Slender Creepy Silhouette)
-    const bodyGeo = new THREE.CylinderGeometry(0.4, 0.5, 2.4, 16);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x020202, roughness: 0.95, transparent: false, opacity: 1.0 });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 1.2;
-    body.castShadow = true;
-    monsterGroup.add(body);
+    function initEngine() {
+      const container = document.getElementById('canvas-container');
 
-    // Head
-    const headGeo = new THREE.SphereGeometry(0.42, 16, 16);
-    const headMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.9, transparent: false, opacity: 1.0 });
-    monsterHeadMesh = new THREE.Mesh(headGeo, headMat);
-    monsterHeadMesh.position.y = 2.6;
-    monsterHeadMesh.castShadow = true;
-    monsterGroup.add(monsterHeadMesh);
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0c);
+      scene.fog = new THREE.FogExp2(0x0a0a0c, 0.025); // Dense fog reduces far draws for anti-lag
 
-    // Glow Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    
-    const eyeLeft = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeLeft.position.set(-0.16, 2.65, 0.36);
-    
-    const eyeRight = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeRight.position.set(0.16, 2.65, 0.36);
-    
-    monsterGroup.add(eyeLeft);
-    monsterGroup.add(eyeRight);
+      // Camera
+      camera = new THREE.PerspectiveCamera(CONFIG.FOV, window.innerWidth / window.innerHeight, 0.1, CONFIG.RENDER_DISTANCE);
+      
+      // Renderer - Optimized settings for performance
+      renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit resolution multiplier to stop lag
+      renderer.shadowMap.enabled = false; // Shadow rendering disabled for speed
+      container.appendChild(renderer.domElement);
 
-    // Wide Unsettling Smile
-    const smileGeo = new THREE.BoxGeometry(0.35, 0.06, 0.1);
-    const smileMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
-    const smile = new THREE.Mesh(smileGeo, smileMat);
-    smile.position.set(0, 2.48, 0.38);
-    monsterGroup.add(smile);
+      // LIGHTING - Opaque, hard non-see-through lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
 
-    // Iconic Tall Red-and-White Striped Hat
-    const hatBrimGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.08, 16);
-    const hatBrimMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.6, transparent: false, opacity: 1.0 });
-    const hatBrim = new THREE.Mesh(hatBrimGeo, hatBrimMat);
-    hatBrim.position.y = 3.0;
-    monsterGroup.add(hatBrim);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+      dirLight.position.set(20, 40, 20);
+      scene.add(dirLight);
 
-    const stripeCount = 5;
-    const stripeHeight = 0.28;
-    for (let i = 0; i < stripeCount; i++) {
-        const stripeGeo = new THREE.CylinderGeometry(0.42, 0.42, stripeHeight, 16);
-        const stripeMat = new THREE.MeshStandardMaterial({
-            color: (i % 2 === 0) ? 0xbb0000 : 0xdddddd,
-            roughness: 0.5,
-            transparent: false,
-            opacity: 1.0
-        });
+      // Build World
+      buildWorld();
+
+      // Controls setup
+      setupControls();
+
+      // Window Resize Listener
+      window.addEventListener('resize', onWindowResize, false);
+    }
+
+    // --- BUILD WORLD GRAPHICS ---
+    function buildWorld() {
+      const mazeGen = new MazeGenerator(CONFIG.MAZE_SIZE);
+      const grid = mazeGen.generate();
+
+      // Materials - STRICTLY OPAQUE (Hard, solid, non-transparent)
+      const wallMaterial = new THREE.MeshLambertMaterial({ 
+        color: 0x3a3a4a, 
+        transparent: false, 
+        opacity: 1.0 
+      });
+      const floorMaterial = new THREE.MeshLambertMaterial({ 
+        color: 0x15151c, 
+        transparent: false, 
+        opacity: 1.0 
+      });
+      const ceilingMaterial = new THREE.MeshLambertMaterial({ 
+        color: 0x08080a, 
+        transparent: false, 
+        opacity: 1.0 
+      });
+
+      // Combined Geometries for Performance (Instancing / Merging concept via InstancedMesh)
+      const wallGeometry = new THREE.BoxGeometry(CONFIG.CELL_SIZE, CONFIG.WALL_HEIGHT, CONFIG.CELL_SIZE);
+
+      // Generate Floor & Ceiling
+      const totalWorldSize = CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE;
+      const floorGeo = new THREE.PlaneGeometry(totalWorldSize * 2, totalWorldSize * 2);
+      
+      const floor = new THREE.Mesh(floorGeo, floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(totalWorldSize / 2, 0, totalWorldSize / 2);
+      scene.add(floor);
+
+      const ceiling = new THREE.Mesh(floorGeo, ceilingMaterial);
+      ceiling.rotation.x = Math.PI / 2;
+      ceiling.position.set(totalWorldSize / 2, CONFIG.WALL_HEIGHT, totalWorldSize / 2);
+      scene.add(ceiling);
+
+      // Build Maze Walls
+      for (let r = 0; r < CONFIG.MAZE_SIZE; r++) {
+        for (let c = 0; c < CONFIG.MAZE_SIZE; c++) {
+          const cell = grid[r][c];
+          const x = c * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
+          const z = r * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
+
+          // Outer Boundary & Internal Walls
+          if (cell.walls.N) createWallBlock(x, z - CONFIG.CELL_SIZE / 2, CONFIG.CELL_SIZE, 1);
+          if (cell.walls.S) createWallBlock(x, z + CONFIG.CELL_SIZE / 2, CONFIG.CELL_SIZE, 1);
+          if (cell.walls.E) createWallBlock(x + CONFIG.CELL_SIZE / 2, z, 1, CONFIG.CELL_SIZE);
+          if (cell.walls.W) createWallBlock(x - CONFIG.CELL_SIZE / 2, z, 1, CONFIG.CELL_SIZE);
+        }
+      }
+
+      function createWallBlock(x, z, w, d) {
+        const geo = new THREE.BoxGeometry(w, CONFIG.WALL_HEIGHT, d);
+        const wall = new THREE.Mesh(geo, wallMaterial);
+        wall.position.set(x, CONFIG.WALL_HEIGHT / 2, z);
+        scene.add(wall);
+
+        // Save box for rigid collision detection
+        const box = new THREE.Box3().setFromObject(wall);
+        wallBoxes.push(box);
+      }
+
+      // Create Player Object Position
+      playerObj = new THREE.Object3D();
+      playerObj.position.set(CONFIG.CELL_SIZE / 2, 1.6, CONFIG.CELL_SIZE / 2);
+      scene.add(playerObj);
+
+      // Create Key in furthest quadrant
+      createKey(CONFIG.MAZE_SIZE - 2, CONFIG.MAZE_SIZE - 2);
+
+      // Create Cat In The Hat Enemy
+      createCatInTheHat(CONFIG.MAZE_SIZE - 1, 1);
+    }
+
+    // --- PROCEDURAL CAT IN THE HAT MODEL (3D Hard Opaque Mesh) ---
+    function createCatInTheHat(gridX, gridZ) {
+      catObj = new THREE.Group();
+
+      // Materials - Opaque
+      const blackMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+      const whiteMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
+      const redMat = new THREE.MeshLambertMaterial({ color: 0xcc1111 });
+
+      // Body (Tall Black Cylinder)
+      const bodyGeo = new THREE.CylinderGeometry(0.6, 0.7, 2.5, 8);
+      const body = new THREE.Mesh(bodyGeo, blackMat);
+      body.position.y = 1.25;
+      catObj.add(body);
+
+      // White Chest Patch
+      const chestGeo = new THREE.CylinderGeometry(0.45, 0.5, 1.8, 8, 1, false, -Math.PI / 4, Math.PI / 2);
+      const chest = new THREE.Mesh(chestGeo, whiteMat);
+      chest.position.set(0, 1.3, 0.15);
+      catObj.add(chest);
+
+      // Head
+      const headGeo = new THREE.SphereGeometry(0.6, 8, 8);
+      const head = new THREE.Mesh(headGeo, blackMat);
+      head.position.y = 2.8;
+      catObj.add(head);
+
+      // Face Mask (White)
+      const faceGeo = new THREE.SphereGeometry(0.55, 8, 8, 0, Math.PI);
+      const face = new THREE.Mesh(faceGeo, whiteMat);
+      face.position.set(0, 2.8, 0.1);
+      face.rotation.y = -Math.PI / 2;
+      catObj.add(face);
+
+      // Red Bowtie
+      const bowGeo = new THREE.BoxGeometry(0.6, 0.3, 0.2);
+      const bow = new THREE.Mesh(bowGeo, redMat);
+      bow.position.set(0, 2.3, 0.5);
+      catObj.add(bow);
+
+      // THE HAT (Red & White Striped Stovepipe Hat)
+      const hatBrimGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.08, 12);
+      const hatBrim = new THREE.Mesh(hatBrimGeo, redMat);
+      hatBrim.position.set(0, 3.3, 0);
+      catObj.add(hatBrim);
+
+      // Hat Stripes Stack
+      const stripeHeight = 0.4;
+      for (let i = 0; i < 5; i++) {
+        const stripeGeo = new THREE.CylinderGeometry(0.6, 0.6, stripeHeight, 10);
+        const stripeMat = (i % 2 === 0) ? whiteMat : redMat;
         const stripe = new THREE.Mesh(stripeGeo, stripeMat);
-        stripe.position.y = 3.14 + (i * stripeHeight);
-        stripe.castShadow = true;
-        monsterGroup.add(stripe);
+        stripe.position.set(0, 3.4 + (i * stripeHeight) + (stripeHeight / 2), 0);
+        catObj.add(stripe);
+      }
+
+      // Position Cat in World
+      catObj.position.set(
+        gridX * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2,
+        0,
+        gridZ * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2
+      );
+
+      scene.add(catObj);
     }
 
-    monsterGroup.position.copy(monsterPosition);
-    scene.add(monsterGroup);
-}
+    // --- CREATE KEY ---
+    function createKey(gridX, gridZ) {
+      keyObj = new THREE.Group();
 
-function updateMonsterAI(delta) {
-    if (gameState.isGameOver || !gameState.isStarted) return;
+      const goldMat = new THREE.MeshLambertMaterial({ 
+        color: 0xffd700, 
+        emissive: 0x443300,
+        transparent: false 
+      });
 
-    const playerPos = camera.position;
-    const distToPlayer = monsterGroup.position.distanceTo(playerPos);
-    gameState.monsterDistance = distToPlayer;
+      // Key Ring
+      const ringGeo = new THREE.TorusGeometry(0.4, 0.1, 8, 16);
+      const ring = new THREE.Mesh(ringGeo, goldMat);
+      ring.position.y = 1.2;
+      keyObj.add(ring);
 
-    // Determine speed
-    let speed = gameState.monsterEnraged ? CONFIG.MONSTER_ENRAGE_SPEED : CONFIG.MONSTER_BASE_SPEED;
+      // Key Shaft
+      const shaftGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.0, 8);
+      const shaft = new THREE.Mesh(shaftGeo, goldMat);
+      shaft.position.y = 0.6;
+      keyObj.add(shaft);
 
-    // Monster Pathing Directly towards Player
-    const dir = new THREE.Vector3().subVectors(playerPos, monsterGroup.position);
-    dir.y = 0; // Lock to floor plane
-    dir.normalize();
+      // Position Key
+      keyObj.position.set(
+        gridX * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2,
+        0.5,
+        gridZ * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2
+      );
 
-    monsterGroup.position.addScaledVector(dir, speed * delta);
-    monsterGroup.lookAt(playerPos.x, monsterGroup.position.y, playerPos.z);
-
-    // Monster Footstep Sound Timing
-    monsterStepTimer += delta;
-    if (monsterStepTimer > Math.max(0.15, distToPlayer / 20)) {
-        audio.playMonsterStep();
-        monsterStepTimer = 0;
+      scene.add(keyObj);
     }
 
-    // Teleportation / Ambush Mechanic if player is too far or hiding
-    monsterTeleportTimer += delta;
-    if (monsterTeleportTimer > 12.0) {
-        monsterTeleportTimer = 0;
-        if (distToPlayer > 35.0) {
-            // Teleport behind or near player
-            const angle = Math.random() * Math.PI * 2;
-            const offsetDist = 12.0 + Math.random() * 8.0;
-            monsterGroup.position.x = playerPos.x + Math.cos(angle) * offsetDist;
-            monsterGroup.position.z = playerPos.z + Math.sin(angle) * offsetDist;
-        }
+    // --- CREATE HIGHLIGHTED GREEN DOOR ---
+    function createGreenDoor() {
+      doorObj = new THREE.Group();
+
+      // Solid, bright non-seethrough green material with high emission
+      const greenDoorMat = new THREE.MeshLambertMaterial({ 
+        color: 0x00ff22, 
+        emissive: 0x00aa11,
+        transparent: false,
+        opacity: 1.0
+      });
+
+      const frameMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+
+      // Door Frame
+      const frameGeo = new THREE.BoxGeometry(4.4, CONFIG.WALL_HEIGHT, 0.6);
+      const frame = new THREE.Mesh(frameGeo, frameMat);
+      frame.position.y = CONFIG.WALL_HEIGHT / 2;
+      doorObj.add(frame);
+
+      // Main Green Glowing Door Panel
+      const doorPanelGeo = new THREE.BoxGeometry(4.0, CONFIG.WALL_HEIGHT - 0.4, 0.4);
+      const doorPanel = new THREE.Mesh(doorPanelGeo, greenDoorMat);
+      doorPanel.position.y = CONFIG.WALL_HEIGHT / 2;
+      doorObj.add(doorPanel);
+
+      // Point Light to illuminate surrounding walls green
+      const doorLight = new THREE.PointLight(0x00ff22, 2, 15);
+      doorLight.position.set(0, CONFIG.WALL_HEIGHT / 2, 1.0);
+      doorObj.add(doorLight);
+
+      // Spawn Door near start corner or specific location
+      doorObj.position.set(CONFIG.CELL_SIZE / 2, 0, CONFIG.CELL_SIZE * 1.5);
+      
+      scene.add(doorObj);
     }
 
-    // ========================================================================
-    // CRITICAL REQUIREMENT: DIE ON CONTACT WITH CAT IN THE HAT
-    // ========================================================================
-    if (distToPlayer < 1.35) {
-        triggerJumpscareAndDeath("The Cat in the Hat caught you!");
-    }
-}
+    // --- CONTROLS & POINTER LOCK ---
+    function setupControls() {
+      const overlay = document.getElementById('screen-overlay');
+      const startBtn = document.getElementById('start-btn');
 
-// ============================================================================
-// CONTROLS & PLAYER MOVEMENT ENGINE
-// ============================================================================
-function onKeyDown(e) {
-    if (!gameState.isStarted || gameState.isGameOver) return;
+      startBtn.addEventListener('click', () => {
+        document.body.requestPointerLock();
+      });
 
-    switch (e.code) {
-        case 'KeyW': keys.forward = true; break;
-        case 'KeyS': keys.backward = true; break;
-        case 'KeyA': keys.left = true; break;
-        case 'KeyD': keys.right = true; break;
-        case 'ShiftLeft': keys.sprint = true; break;
-        case 'KeyE': executeInteraction(); break;
-        case 'KeyF': toggleFlashlight(); break;
-        case 'KeyR': reloadBattery(); break;
-    }
-}
-
-function onKeyUp(e) {
-    switch (e.code) {
-        case 'KeyW': keys.forward = false; break;
-        case 'KeyS': keys.backward = false; break;
-        case 'KeyA': keys.left = false; break;
-        case 'KeyD': keys.right = false; break;
-        case 'ShiftLeft': keys.sprint = false; break;
-    }
-}
-
-function onMouseMove(e) {
-    if (!isPointerLocked || gameState.isGameOver) return;
-
-    const sensitivity = 0.0022;
-    yaw -= e.movementX * sensitivity;
-    pitch -= e.movementY * sensitivity;
-
-    // Clamp vertical look angle
-    pitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, pitch));
-
-    camera.rotation.order = 'YXZ';
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
-}
-
-function updatePlayerMovement(delta) {
-    if (!isPointerLocked || gameState.isGameOver) return;
-
-    // Stamina calculation
-    let isSprinting = keys.sprint && gameState.stamina > 0 && (keys.forward || keys.backward || keys.left || keys.right);
-    let speed = CONFIG.PLAYER_SPEED * (isSprinting ? CONFIG.SPRINT_MULTIPLIER : 1.0);
-
-    if (isSprinting) {
-        gameState.stamina = Math.max(0, gameState.stamina - CONFIG.STAMINA_DEPLETION * delta);
-    } else {
-        gameState.stamina = Math.min(100, gameState.stamina + CONFIG.STAMINA_RECOVERY * delta);
-    }
-    document.getElementById('stamina-bar').style.width = gameState.stamina + '%';
-
-    // Flashlight Drain
-    if (gameState.flashlightOn) {
-        gameState.battery = Math.max(0, gameState.battery - CONFIG.FLASHLIGHT_BATTERY_DRAIN * delta);
-        flashlight.intensity = (gameState.battery / 100) * 4.0;
-        if (gameState.battery <= 0) {
-            gameState.flashlightOn = false;
-            flashlight.visible = false;
-            showLogMessage("Flashlight battery died! Press [R] to replace battery.");
-        }
-    }
-
-    // Sanity Drain in Darkness
-    if (!gameState.flashlightOn || gameState.monsterDistance < 12) {
-        gameState.sanity = Math.max(0, gameState.sanity - CONFIG.SANITY_DRAK_RATE * delta);
-    } else {
-        gameState.sanity = Math.min(100, gameState.sanity + CONFIG.SANITY_RECOVER_RATE * delta);
-    }
-    document.getElementById('sanity-bar').style.width = gameState.sanity + '%';
-
-    // Direction calculation
-    moveVelocity.x -= moveVelocity.x * 10.0 * delta;
-    moveVelocity.z -= moveVelocity.z * 10.0 * delta;
-
-    const moveZ = Number(keys.forward) - Number(keys.backward);
-    const moveX = Number(keys.right) - Number(keys.left);
-
-    const moveDir = new THREE.Vector3(moveX, 0, -moveZ).normalize();
-
-    if (keys.forward || keys.backward) moveVelocity.z -= moveDir.z * speed * 10.0 * delta;
-    if (keys.left || keys.right) moveVelocity.x += moveDir.x * speed * 10.0 * delta;
-
-    // Transform relative to camera orientation
-    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-    const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-
-    const intendedPosition = camera.position.clone();
-    intendedPosition.addScaledVector(forward, -moveVelocity.z * delta);
-    intendedPosition.addScaledVector(side, moveVelocity.x * delta);
-
-    // Wall Collision Check (Opaque solid walls)
-    if (!checkWallCollisions(intendedPosition)) {
-        camera.position.copy(intendedPosition);
-    }
-
-    // Footstep Sound Trigger
-    if (keys.forward || keys.backward || keys.left || keys.right) {
-        footstepTimer += delta;
-        if (footstepTimer > (isSprinting ? 0.26 : 0.45)) {
-            audio.playFootstep();
-            footstepTimer = 0;
-        }
-    }
-
-    // Raycast Interaction Detection
-    checkInteractionRaycast();
-}
-
-function checkWallCollisions(pos) {
-    const playerRadius = CONFIG.COLLISION_RADIUS;
-    for (let box of worldBoundingBoxes) {
-        const closestPoint = new THREE.Vector3(
-            Math.max(box.min.x, Math.min(pos.x, box.max.x)),
-            pos.y,
-            Math.max(box.min.z, Math.min(pos.z, box.max.z))
-        );
-        const distance = pos.distanceTo(closestPoint);
-        if (distance < playerRadius) {
-            return true; // Collision detected
-        }
-    }
-    return false;
-}
-
-// ============================================================================
-// RAYCASTING & INTERACTION SYSTEM
-// ============================================================================
-function checkInteractionRaycast() {
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(scene.children, true);
-
-    const prompt = document.getElementById('interaction-prompt');
-    gameState.activeInteractable = null;
-
-    for (let hit of intersects) {
-        if (hit.distance > 3.5) continue;
-
-        let obj = hit.object;
-        while (obj.parent && !obj.userData.isBackpack && !obj.userData.isExitDoor) {
-            obj = obj.parent;
-        }
-
-        if (obj.userData.isBackpack) {
-            if (!obj.userData.searched) {
-                prompt.innerText = "Press [E] " + obj.userData.interactText;
-                prompt.style.display = 'block';
-                gameState.activeInteractable = obj;
-            } else {
-                prompt.innerText = "Empty Backpack";
-                prompt.style.display = 'block';
-            }
-            return;
-        }
-
-        if (obj.userData.isExitDoor) {
-            prompt.innerText = (gameState.keysFound >= CONFIG.TOTAL_KEYS_REQUIRED) ? 
-                "Press [E] Unlock Exit Gate" : `Locked Gate (${gameState.keysFound}/${CONFIG.TOTAL_KEYS_REQUIRED} Keys Found)`;
-            prompt.style.display = 'block';
-            gameState.activeInteractable = obj;
-            return;
-        }
-    }
-
-    prompt.style.display = 'none';
-}
-
-function executeInteraction() {
-    const obj = gameState.activeInteractable;
-    if (!obj) return;
-
-    if (obj.userData.isBackpack && !obj.userData.searched) {
-        obj.userData.searched = true;
-        audio.playSearchSound();
-
-        if (obj.userData.containsKey > 0) {
-            const keyType = obj.userData.containsKey;
-            gameState.keysFound++;
-            audio.playKeyFoundSound();
-
-            if (keyType === 1) {
-                gameState.hasKey1 = true;
-                document.getElementById('inv-key1').classList.add('active');
-                document.getElementById('inv-key1').innerText = "[X] Sector Alpha Keycard";
-                showLogMessage("FOUND SECTOR ALPHA KEYCARD!");
-            } else if (keyType === 2) {
-                gameState.hasKey2 = true;
-                document.getElementById('inv-key2').classList.add('active');
-                document.getElementById('inv-key2').innerText = "[X] Sector Beta Keycard";
-                showLogMessage("FOUND SECTOR BETA KEYCARD!");
-            } else if (keyType === 3) {
-                gameState.hasKey3 = true;
-                document.getElementById('inv-key3').classList.add('active');
-                document.getElementById('inv-key3').innerText = "[X] Main Exit Override Key";
-                showLogMessage("FOUND MAIN EXIT OVERRIDE KEY!");
-            }
-
-            document.getElementById('keys-count').innerText = `${gameState.keysFound} / ${CONFIG.TOTAL_KEYS_REQUIRED}`;
-            
-            if (gameState.keysFound >= CONFIG.TOTAL_KEYS_REQUIRED) {
-                document.getElementById('obj-text').innerText = "PROCEED TO MAIN EXIT GATE!";
-                showLogMessage("ALL KEYS FOUND! ESCAPE THROUGH THE MAIN EXIT GATE!");
-            }
-        } else if (obj.userData.containsBattery) {
-            gameState.spareBatteries++;
-            document.getElementById('bat-count').innerText = gameState.spareBatteries;
-            showLogMessage("Found a spare flashlight battery!");
+      document.addEventListener('pointerlockchange', () => {
+        if (document.pointerLockElement === document.body) {
+          STATE.playing = true;
+          overlay.style.display = 'none';
         } else {
-            showLogMessage("Backpack is empty...");
+          if (!STATE.gameOver && !STATE.won) {
+            STATE.playing = false;
+            overlay.style.display = 'flex';
+            document.getElementById('overlay-title').innerText = 'PAUSED';
+            document.getElementById('overlay-desc').innerText = 'Click to resume game.';
+            startBtn.innerText = 'RESUME';
+          }
         }
-    } else if (obj.userData.isExitDoor) {
-        if (gameState.keysFound >= CONFIG.TOTAL_KEYS_REQUIRED) {
-            triggerWin();
-        } else {
-            showLogMessage("The security gate is locked! Find all 3 security keys.");
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!STATE.playing) return;
+
+        const sensitivity = 0.0022;
+        cameraRotation.yaw -= e.movementX * sensitivity;
+        cameraRotation.pitch -= e.movementY * sensitivity;
+
+        // Clamp pitch to avoid full camera flips
+        cameraRotation.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraRotation.pitch));
+      });
+
+      document.addEventListener('keydown', (e) => {
+        switch (e.key.toLowerCase()) {
+          case 'w': keys.w = true; break;
+          case 'a': keys.a = true; break;
+          case 's': keys.s = true; break;
+          case 'd': keys.d = true; break;
+          case 'shift': keys.shift = true; break;
         }
-    }
-}
+      });
 
-function toggleFlashlight() {
-    if (gameState.battery <= 0) return;
-    gameState.flashlightOn = !gameState.flashlightOn;
-    flashlight.visible = gameState.flashlightOn;
-    audio.playFlashlightClick();
-}
-
-function reloadBattery() {
-    if (gameState.spareBatteries > 0) {
-        gameState.spareBatteries--;
-        gameState.battery = 100;
-        gameState.flashlightOn = true;
-        flashlight.visible = true;
-        document.getElementById('bat-count').innerText = gameState.spareBatteries;
-        audio.playBatteryReload();
-        showLogMessage("Flashlight battery reloaded!");
-    } else {
-        showLogMessage("No spare batteries in inventory!");
-    }
-}
-
-// ============================================================================
-// JUMPSCARE & GAME OVER MECHANICS
-// ============================================================================
-function triggerJumpscareAndDeath(reason) {
-    gameState.isGameOver = true;
-    audio.playJumpscareSound();
-    
-    document.exitPointerLock();
-
-    // Snap camera look directly at the monster's face
-    camera.lookAt(monsterGroup.position.x, monsterGroup.position.y + 2.5, monsterGroup.position.z);
-
-    const jumpscareOverlay = document.getElementById('jumpscare-overlay');
-    jumpscareOverlay.style.display = 'flex';
-
-    setTimeout(() => {
-        jumpscareOverlay.style.display = 'none';
-        document.getElementById('death-reason').innerText = reason;
-        document.getElementById('death-screen').classList.remove('hidden');
-    }, 1100);
-}
-
-function triggerWin() {
-    gameState.isGameOver = true;
-    gameState.hasEscaped = true;
-    document.exitPointerLock();
-    document.getElementById('win-screen').classList.remove('hidden');
-}
-
-function showLogMessage(msg) {
-    const box = document.getElementById('msg-log');
-    box.innerText = msg;
-    box.style.display = 'block';
-    setTimeout(() => { box.style.display = 'none'; }, 3200);
-}
-
-function startGame() {
-    audio.init();
-    gameState.isStarted = true;
-    document.getElementById('start-screen').classList.add('hidden');
-    
-    document.body.requestPointerLock();
-    document.addEventListener('pointerlockchange', () => {
-        isPointerLocked = (document.pointerLockElement === document.body);
-    });
-}
-
-function restartGame() {
-    location.reload();
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-// Static background noise generator for UI texture
-function initStaticCanvas() {
-    const canvas = document.getElementById('static-canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth / 4;
-    canvas.height = window.innerHeight / 4;
-
-    function renderStatic() {
-        if (gameState.isGameOver) return;
-        const imgData = ctx.createImageData(canvas.width, canvas.height);
-        const data = imgData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            const val = Math.random() * 255;
-            data[i] = val;
-            data[i+1] = val;
-            data[i+2] = val;
-            data[i+3] = 18;
+      document.addEventListener('keyup', (e) => {
+        switch (e.key.toLowerCase()) {
+          case 'w': keys.w = false; break;
+          case 'a': keys.a = false; break;
+          case 's': keys.s = false; break;
+          case 'd': keys.d = false; break;
+          case 'shift': keys.shift = false; break;
         }
-        ctx.putImageData(imgData, 0, 0);
-        requestAnimationFrame(renderStatic);
-    }
-    renderStatic();
-}
-
-// ============================================================================
-// MAIN GAME LOOP
-// ============================================================================
-function animate() {
-    requestAnimationFrame(animate);
-
-    const time = performance.now();
-    const delta = Math.min((time - prevTime) / 1000, 0.1);
-    prevTime = time;
-
-    if (gameState.isStarted && !gameState.isGameOver) {
-        updatePlayerMovement(delta);
-        updateMonsterAI(delta);
-        updateFlickeringLights(time / 1000);
+      });
     }
 
-    renderer.render(scene, camera);
-}
+    // --- COLLISION SYSTEM (AABB Sphere-Box Collision for speed) ---
+    function checkWallCollisions(newPos) {
+      const playerRadius = CONFIG.PLAYER_RADIUS;
 
-// Launch engine
-initEngine();
-animate();
+      for (let i = 0; i < wallBoxes.length; i++) {
+        const box = wallBoxes[i];
 
-</script>
+        // Closest point on AABB to player center
+        const closestX = Math.max(box.min.x, Math.min(newPos.x, box.max.x));
+        const closestY = Math.max(box.min.y, Math.min(newPos.y, box.max.y));
+        const closestZ = Math.max(box.min.z, Math.min(newPos.z, box.max.z));
+
+        const distX = newPos.x - closestX;
+        const distZ = newPos.z - closestZ;
+        const distanceSq = (distX * distX) + (distZ * distZ);
+
+        if (distanceSq < (playerRadius * playerRadius)) {
+          // Collision detected: Push out player along shortest axis
+          const distance = Math.sqrt(distanceSq);
+          if (distance > 0) {
+            const overlap = playerRadius - distance;
+            newPos.x += (distX / distance) * overlap;
+            newPos.z += (distZ / distance) * overlap;
+          }
+        }
+      }
+    }
+
+    // --- GAME LOOP & UPDATES ---
+    function updatePlayer(delta) {
+      if (!STATE.playing) return;
+
+      // Camera orientation calculation
+      playerObj.rotation.y = cameraRotation.yaw;
+      camera.rotation.x = cameraRotation.pitch;
+
+      const speed = keys.shift ? CONFIG.PLAYER_RUN_SPEED : CONFIG.PLAYER_SPEED;
+      const moveVector = new THREE.Vector3();
+
+      if (keys.w) moveVector.z -= 1;
+      if (keys.s) moveVector.z += 1;
+      if (keys.a) moveVector.x -= 1;
+      if (keys.d) moveVector.x += 1;
+
+      moveVector.normalize();
+      moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraRotation.yaw);
+
+      const newPos = playerObj.position.clone().addScaledVector(moveVector, speed * delta);
+
+      // Perform strict collision response
+      checkWallCollisions(newPos);
+
+      // Apply safe new position
+      playerObj.position.x = newPos.x;
+      playerObj.position.z = newPos.z;
+
+      // Attach camera to player head position
+      camera.position.copy(playerObj.position);
+    }
+
+    // --- CAT IN THE HAT AI (CHASE PLAYER) ---
+    function updateCat(delta) {
+      if (!catObj || !STATE.playing) return;
+
+      const catPos = catObj.position;
+      const targetPos = playerObj.position;
+
+      // Compute directional vector toward player
+      const dir = new THREE.Vector3().subVectors(targetPos, catPos);
+      dir.y = 0; // Keep movement on 2D horizontal plane
+
+      const distToPlayer = dir.length();
+
+      // TOUCH DEATH CONDITION
+      if (distToPlayer < (CONFIG.CAT_RADIUS + CONFIG.PLAYER_RADIUS)) {
+        triggerDeath();
+        return;
+      }
+
+      // Move toward player
+      dir.normalize();
+      catObj.position.addScaledVector(dir, CONFIG.CAT_SPEED * delta);
+
+      // Face the player
+      catObj.lookAt(targetPos.x, catObj.position.y, targetPos.z);
+    }
+
+    // --- INTERACTION & LOGIC CHECKS ---
+    function checkInteractions() {
+      if (!STATE.playing) return;
+
+      // Key Rotation Animation
+      if (keyObj && !STATE.hasKey) {
+        keyObj.rotation.y += 0.02;
+
+        const distToKey = playerObj.position.distanceTo(keyObj.position);
+        if (distToKey < 2.0) {
+          // PICK UP KEY
+          STATE.hasKey = true;
+          scene.remove(keyObj);
+
+          // Update HUD
+          const statusElem = document.getElementById('status-msg');
+          statusElem.innerText = 'KEY COLLECTED! FIND THE GREEN DOOR!';
+          statusElem.classList.add('has-key');
+          document.getElementById('keys-count').innerText = 'KEY: 1/1';
+
+          // SPAWN HIGHLIGHTED GREEN DOOR IMMEDIATELY
+          createGreenDoor();
+        }
+      }
+
+      // Door Touch Check
+      if (doorObj && STATE.hasKey) {
+        const distToDoor = playerObj.position.distanceTo(doorObj.position);
+        if (distToDoor < 2.5) {
+          triggerWin();
+        }
+      }
+    }
+
+    // --- GAME OVER: DIED TO CAT ---
+    function triggerDeath() {
+      STATE.playing = false;
+      STATE.gameOver = true;
+      document.exitPointerLock();
+
+      const overlay = document.getElementById('screen-overlay');
+      document.getElementById('overlay-title').innerText = 'YOU DIED!';
+      document.getElementById('overlay-title').style.color = '#ff1111';
+      document.getElementById('overlay-desc').innerText = 'The Cat in the Hat caught you! You died instantly on touch.';
+      
+      const btn = document.getElementById('start-btn');
+      btn.innerText = 'RETRY';
+      btn.onclick = () => { location.reload(); };
+
+      overlay.style.display = 'flex';
+    }
+
+    // --- GAME WIN: ESCAPED GREEN DOOR ---
+    function triggerWin() {
+      STATE.playing = false;
+      STATE.won = true;
+      document.exitPointerLock();
+
+      const overlay = document.getElementById('screen-overlay');
+      document.getElementById('overlay-title').innerText = 'YOU ESCAPED!';
+      document.getElementById('overlay-title').style.color = '#00ff22';
+      document.getElementById('overlay-desc').innerText = 'You successfully unlocked the highlighted green door and escaped the Cat!';
+
+      const btn = document.getElementById('start-btn');
+      btn.innerText = 'PLAY AGAIN';
+      btn.onclick = () => { location.reload(); };
+
+      overlay.style.display = 'flex';
+    }
+
+    // --- ENGINE TICK / MAIN LOOP ---
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.1); // Clamp delta to avoid massive lag skips
+
+      if (STATE.playing) {
+        updatePlayer(delta);
+        updateCat(delta);
+        checkInteractions();
+      }
+
+      // Render Scene
+      renderer.render(scene, camera);
+
+      // FPS Monitor
+      STATE.frameCount++;
+      const now = performance.now();
+      if (now - STATE.lastFpsUpdate >= 1000) {
+        STATE.fps = STATE.frameCount;
+        STATE.frameCount = 0;
+        STATE.lastFpsUpdate = now;
+        document.getElementById('fps-counter').innerText = `FPS: ${STATE.fps}`;
+      }
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Initialize Engine on Load
+    window.onload = () => {
+      initEngine();
+      animate();
+    };
+  </script>
 </body>
 </html>
