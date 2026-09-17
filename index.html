@@ -177,28 +177,22 @@
     </div>
     <div id="fps-counter">FPS: 60</div>
     <div id="instructions">
-      [WASD] Move | [MOUSE] Look | [SHIFT] Run
+      [WASD] Move | [MOUSE] Look Around | [SHIFT] Run | [ESC] Pause
     </div>
   </div>
 
   <div id="screen-overlay">
     <h1 id="overlay-title">CAT ESCAPE</h1>
     <p id="overlay-desc">
-      Explore the maze and find the golden key. Avoid the Cat in the Hat at all costs—one touch means instant death. Once you collect the key, a bright green door will spawn. Touch the green door to escape!
+      Click anywhere or press the button below to start. Move your mouse to look around in 360 degrees. Find the golden key and avoid the Cat in the Hat!
     </p>
-    <button class="btn" id="start-btn">PLAY GAME</button>
+    <button class="btn" id="start-btn">CLICK TO PLAY & LOOK AROUND</button>
   </div>
 
   <!-- Include Three.js for fast, optimized 3D graphics -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <script>
-    /**
-     * GAME ENGINE & ARCHITECTURE
-     * Fully solid (opaque) rendering, no transparent/seethrough shaders for performance.
-     * Optimized spatial partitioning grid for collision & high performance.
-     */
-
     // --- GAME STATE VARIABLES ---
     const STATE = {
       playing: false,
@@ -224,7 +218,7 @@
       RENDER_DISTANCE: 120
     };
 
-    // --- MAZE GRID GENERATION (Recursive Backtracker) ---
+    // --- MAZE GRID GENERATION ---
     class MazeGenerator {
       constructor(size) {
         this.size = size;
@@ -298,6 +292,9 @@
 
     // Input tracker
     const keys = { w: false, a: false, s: false, d: false, shift: false };
+    
+    // Euler & Rotation setup for smooth mouse look
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     let cameraRotation = { yaw: 0, pitch: 0 };
 
     function initEngine() {
@@ -306,19 +303,19 @@
       // Scene
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x0a0a0c);
-      scene.fog = new THREE.FogExp2(0x0a0a0c, 0.025); // Dense fog reduces far draws for anti-lag
+      scene.fog = new THREE.FogExp2(0x0a0a0c, 0.025);
 
       // Camera
       camera = new THREE.PerspectiveCamera(CONFIG.FOV, window.innerWidth / window.innerHeight, 0.1, CONFIG.RENDER_DISTANCE);
       
-      // Renderer - Optimized settings for performance
+      // Renderer
       renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit resolution multiplier to stop lag
-      renderer.shadowMap.enabled = false; // Shadow rendering disabled for speed
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.shadowMap.enabled = false;
       container.appendChild(renderer.domElement);
 
-      // LIGHTING - Opaque, hard non-see-through lighting
+      // LIGHTING - Fully Opaque / Hard Light setup
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
       scene.add(ambientLight);
 
@@ -341,25 +338,10 @@
       const mazeGen = new MazeGenerator(CONFIG.MAZE_SIZE);
       const grid = mazeGen.generate();
 
-      // Materials - STRICTLY OPAQUE (Hard, solid, non-transparent)
-      const wallMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x3a3a4a, 
-        transparent: false, 
-        opacity: 1.0 
-      });
-      const floorMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x15151c, 
-        transparent: false, 
-        opacity: 1.0 
-      });
-      const ceilingMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x08080a, 
-        transparent: false, 
-        opacity: 1.0 
-      });
-
-      // Combined Geometries for Performance (Instancing / Merging concept via InstancedMesh)
-      const wallGeometry = new THREE.BoxGeometry(CONFIG.CELL_SIZE, CONFIG.WALL_HEIGHT, CONFIG.CELL_SIZE);
+      // Materials - OPAQUE
+      const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a4a, transparent: false, opacity: 1.0 });
+      const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x15151c, transparent: false, opacity: 1.0 });
+      const ceilingMaterial = new THREE.MeshLambertMaterial({ color: 0x08080a, transparent: false, opacity: 1.0 });
 
       // Generate Floor & Ceiling
       const totalWorldSize = CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE;
@@ -382,7 +364,6 @@
           const x = c * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
           const z = r * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
 
-          // Outer Boundary & Internal Walls
           if (cell.walls.N) createWallBlock(x, z - CONFIG.CELL_SIZE / 2, CONFIG.CELL_SIZE, 1);
           if (cell.walls.S) createWallBlock(x, z + CONFIG.CELL_SIZE / 2, CONFIG.CELL_SIZE, 1);
           if (cell.walls.E) createWallBlock(x + CONFIG.CELL_SIZE / 2, z, 1, CONFIG.CELL_SIZE);
@@ -396,39 +377,41 @@
         wall.position.set(x, CONFIG.WALL_HEIGHT / 2, z);
         scene.add(wall);
 
-        // Save box for rigid collision detection
         const box = new THREE.Box3().setFromObject(wall);
         wallBoxes.push(box);
       }
 
-      // Create Player Object Position
+      // Create Player Object Container
       playerObj = new THREE.Object3D();
       playerObj.position.set(CONFIG.CELL_SIZE / 2, 1.6, CONFIG.CELL_SIZE / 2);
       scene.add(playerObj);
 
-      // Create Key in furthest quadrant
+      // Camera parented to player
+      playerObj.add(camera);
+      camera.position.set(0, 0, 0);
+
+      // Create Key
       createKey(CONFIG.MAZE_SIZE - 2, CONFIG.MAZE_SIZE - 2);
 
-      // Create Cat In The Hat Enemy
+      // Create Cat In The Hat
       createCatInTheHat(CONFIG.MAZE_SIZE - 1, 1);
     }
 
-    // --- PROCEDURAL CAT IN THE HAT MODEL (3D Hard Opaque Mesh) ---
+    // --- PROCEDURAL CAT IN THE HAT MODEL ---
     function createCatInTheHat(gridX, gridZ) {
       catObj = new THREE.Group();
 
-      // Materials - Opaque
       const blackMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
       const whiteMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
       const redMat = new THREE.MeshLambertMaterial({ color: 0xcc1111 });
 
-      // Body (Tall Black Cylinder)
+      // Body
       const bodyGeo = new THREE.CylinderGeometry(0.6, 0.7, 2.5, 8);
       const body = new THREE.Mesh(bodyGeo, blackMat);
       body.position.y = 1.25;
       catObj.add(body);
 
-      // White Chest Patch
+      // Chest
       const chestGeo = new THREE.CylinderGeometry(0.45, 0.5, 1.8, 8, 1, false, -Math.PI / 4, Math.PI / 2);
       const chest = new THREE.Mesh(chestGeo, whiteMat);
       chest.position.set(0, 1.3, 0.15);
@@ -440,26 +423,26 @@
       head.position.y = 2.8;
       catObj.add(head);
 
-      // Face Mask (White)
+      // Face
       const faceGeo = new THREE.SphereGeometry(0.55, 8, 8, 0, Math.PI);
       const face = new THREE.Mesh(faceGeo, whiteMat);
       face.position.set(0, 2.8, 0.1);
       face.rotation.y = -Math.PI / 2;
       catObj.add(face);
 
-      // Red Bowtie
+      // Bowtie
       const bowGeo = new THREE.BoxGeometry(0.6, 0.3, 0.2);
       const bow = new THREE.Mesh(bowGeo, redMat);
       bow.position.set(0, 2.3, 0.5);
       catObj.add(bow);
 
-      // THE HAT (Red & White Striped Stovepipe Hat)
+      // Hat Brim
       const hatBrimGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.08, 12);
       const hatBrim = new THREE.Mesh(hatBrimGeo, redMat);
       hatBrim.position.set(0, 3.3, 0);
       catObj.add(hatBrim);
 
-      // Hat Stripes Stack
+      // Striped Hat
       const stripeHeight = 0.4;
       for (let i = 0; i < 5; i++) {
         const stripeGeo = new THREE.CylinderGeometry(0.6, 0.6, stripeHeight, 10);
@@ -469,7 +452,6 @@
         catObj.add(stripe);
       }
 
-      // Position Cat in World
       catObj.position.set(
         gridX * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2,
         0,
@@ -483,25 +465,18 @@
     function createKey(gridX, gridZ) {
       keyObj = new THREE.Group();
 
-      const goldMat = new THREE.MeshLambertMaterial({ 
-        color: 0xffd700, 
-        emissive: 0x443300,
-        transparent: false 
-      });
+      const goldMat = new THREE.MeshLambertMaterial({ color: 0xffd700, emissive: 0x443300 });
 
-      // Key Ring
       const ringGeo = new THREE.TorusGeometry(0.4, 0.1, 8, 16);
       const ring = new THREE.Mesh(ringGeo, goldMat);
       ring.position.y = 1.2;
       keyObj.add(ring);
 
-      // Key Shaft
       const shaftGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.0, 8);
       const shaft = new THREE.Mesh(shaftGeo, goldMat);
       shaft.position.y = 0.6;
       keyObj.add(shaft);
 
-      // Position Key
       keyObj.position.set(
         gridX * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2,
         0.5,
@@ -515,47 +490,43 @@
     function createGreenDoor() {
       doorObj = new THREE.Group();
 
-      // Solid, bright non-seethrough green material with high emission
       const greenDoorMat = new THREE.MeshLambertMaterial({ 
         color: 0x00ff22, 
-        emissive: 0x00aa11,
-        transparent: false,
-        opacity: 1.0
+        emissive: 0x00aa11
       });
 
       const frameMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
 
-      // Door Frame
       const frameGeo = new THREE.BoxGeometry(4.4, CONFIG.WALL_HEIGHT, 0.6);
       const frame = new THREE.Mesh(frameGeo, frameMat);
       frame.position.y = CONFIG.WALL_HEIGHT / 2;
       doorObj.add(frame);
 
-      // Main Green Glowing Door Panel
       const doorPanelGeo = new THREE.BoxGeometry(4.0, CONFIG.WALL_HEIGHT - 0.4, 0.4);
       const doorPanel = new THREE.Mesh(doorPanelGeo, greenDoorMat);
       doorPanel.position.y = CONFIG.WALL_HEIGHT / 2;
       doorObj.add(doorPanel);
 
-      // Point Light to illuminate surrounding walls green
       const doorLight = new THREE.PointLight(0x00ff22, 2, 15);
       doorLight.position.set(0, CONFIG.WALL_HEIGHT / 2, 1.0);
       doorObj.add(doorLight);
 
-      // Spawn Door near start corner or specific location
       doorObj.position.set(CONFIG.CELL_SIZE / 2, 0, CONFIG.CELL_SIZE * 1.5);
       
       scene.add(doorObj);
     }
 
-    // --- CONTROLS & POINTER LOCK ---
+    // --- CONTROLS & LOOK AROUND (POINTER LOCK) ---
     function setupControls() {
       const overlay = document.getElementById('screen-overlay');
       const startBtn = document.getElementById('start-btn');
 
-      startBtn.addEventListener('click', () => {
+      function requestLock() {
         document.body.requestPointerLock();
-      });
+      }
+
+      startBtn.addEventListener('click', requestLock);
+      overlay.addEventListener('click', requestLock);
 
       document.addEventListener('pointerlockchange', () => {
         if (document.pointerLockElement === document.body) {
@@ -566,21 +537,30 @@
             STATE.playing = false;
             overlay.style.display = 'flex';
             document.getElementById('overlay-title').innerText = 'PAUSED';
-            document.getElementById('overlay-desc').innerText = 'Click to resume game.';
+            document.getElementById('overlay-desc').innerText = 'Click anywhere to lock mouse and resume looking around.';
             startBtn.innerText = 'RESUME';
           }
         }
       });
 
+      // MOUSE LOOK AROUND CODE
       document.addEventListener('mousemove', (e) => {
         if (!STATE.playing) return;
 
         const sensitivity = 0.0022;
+        
         cameraRotation.yaw -= e.movementX * sensitivity;
         cameraRotation.pitch -= e.movementY * sensitivity;
 
-        // Clamp pitch to avoid full camera flips
-        cameraRotation.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraRotation.pitch));
+        // Limit looking straight up or down (clamp)
+        cameraRotation.pitch = Math.max(-Math.PI / 2.0 + 0.1, Math.min(Math.PI / 2.0 - 0.1, cameraRotation.pitch));
+
+        // Apply rotations using Euler
+        euler.x = cameraRotation.pitch;
+        euler.y = cameraRotation.yaw;
+        euler.z = 0;
+
+        camera.quaternion.setFromEuler(euler);
       });
 
       document.addEventListener('keydown', (e) => {
@@ -604,16 +584,14 @@
       });
     }
 
-    // --- COLLISION SYSTEM (AABB Sphere-Box Collision for speed) ---
+    // --- WALL COLLISIONS ---
     function checkWallCollisions(newPos) {
       const playerRadius = CONFIG.PLAYER_RADIUS;
 
       for (let i = 0; i < wallBoxes.length; i++) {
         const box = wallBoxes[i];
 
-        // Closest point on AABB to player center
         const closestX = Math.max(box.min.x, Math.min(newPos.x, box.max.x));
-        const closestY = Math.max(box.min.y, Math.min(newPos.y, box.max.y));
         const closestZ = Math.max(box.min.z, Math.min(newPos.z, box.max.z));
 
         const distX = newPos.x - closestX;
@@ -621,7 +599,6 @@
         const distanceSq = (distX * distX) + (distZ * distZ);
 
         if (distanceSq < (playerRadius * playerRadius)) {
-          // Collision detected: Push out player along shortest axis
           const distance = Math.sqrt(distanceSq);
           if (distance > 0) {
             const overlap = playerRadius - distance;
@@ -636,10 +613,6 @@
     function updatePlayer(delta) {
       if (!STATE.playing) return;
 
-      // Camera orientation calculation
-      playerObj.rotation.y = cameraRotation.yaw;
-      camera.rotation.x = cameraRotation.pitch;
-
       const speed = keys.shift ? CONFIG.PLAYER_RUN_SPEED : CONFIG.PLAYER_SPEED;
       const moveVector = new THREE.Vector3();
 
@@ -649,31 +622,27 @@
       if (keys.d) moveVector.x += 1;
 
       moveVector.normalize();
+      
+      // Orient movement relative to yaw look direction
       moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraRotation.yaw);
 
       const newPos = playerObj.position.clone().addScaledVector(moveVector, speed * delta);
 
-      // Perform strict collision response
       checkWallCollisions(newPos);
 
-      // Apply safe new position
       playerObj.position.x = newPos.x;
       playerObj.position.z = newPos.z;
-
-      // Attach camera to player head position
-      camera.position.copy(playerObj.position);
     }
 
-    // --- CAT IN THE HAT AI (CHASE PLAYER) ---
+    // --- CAT CHASE ---
     function updateCat(delta) {
       if (!catObj || !STATE.playing) return;
 
       const catPos = catObj.position;
       const targetPos = playerObj.position;
 
-      // Compute directional vector toward player
       const dir = new THREE.Vector3().subVectors(targetPos, catPos);
-      dir.y = 0; // Keep movement on 2D horizontal plane
+      dir.y = 0;
 
       const distToPlayer = dir.length();
 
@@ -683,40 +652,32 @@
         return;
       }
 
-      // Move toward player
       dir.normalize();
       catObj.position.addScaledVector(dir, CONFIG.CAT_SPEED * delta);
-
-      // Face the player
       catObj.lookAt(targetPos.x, catObj.position.y, targetPos.z);
     }
 
-    // --- INTERACTION & LOGIC CHECKS ---
+    // --- INTERACTIONS ---
     function checkInteractions() {
       if (!STATE.playing) return;
 
-      // Key Rotation Animation
       if (keyObj && !STATE.hasKey) {
         keyObj.rotation.y += 0.02;
 
         const distToKey = playerObj.position.distanceTo(keyObj.position);
         if (distToKey < 2.0) {
-          // PICK UP KEY
           STATE.hasKey = true;
           scene.remove(keyObj);
 
-          // Update HUD
           const statusElem = document.getElementById('status-msg');
-          statusElem.innerText = 'KEY COLLECTED! FIND THE GREEN DOOR!';
+          statusElem.innerText = 'KEY COLLECTED! FIND THE HIGHLIGHTED GREEN DOOR!';
           statusElem.classList.add('has-key');
           document.getElementById('keys-count').innerText = 'KEY: 1/1';
 
-          // SPAWN HIGHLIGHTED GREEN DOOR IMMEDIATELY
           createGreenDoor();
         }
       }
 
-      // Door Touch Check
       if (doorObj && STATE.hasKey) {
         const distToDoor = playerObj.position.distanceTo(doorObj.position);
         if (distToDoor < 2.5) {
@@ -725,7 +686,7 @@
       }
     }
 
-    // --- GAME OVER: DIED TO CAT ---
+    // --- DEATH / WIN HANDLERS ---
     function triggerDeath() {
       STATE.playing = false;
       STATE.gameOver = true;
@@ -734,7 +695,7 @@
       const overlay = document.getElementById('screen-overlay');
       document.getElementById('overlay-title').innerText = 'YOU DIED!';
       document.getElementById('overlay-title').style.color = '#ff1111';
-      document.getElementById('overlay-desc').innerText = 'The Cat in the Hat caught you! You died instantly on touch.';
+      document.getElementById('overlay-desc').innerText = 'The Cat in the Hat touched you! You died instantly.';
       
       const btn = document.getElementById('start-btn');
       btn.innerText = 'RETRY';
@@ -743,7 +704,6 @@
       overlay.style.display = 'flex';
     }
 
-    // --- GAME WIN: ESCAPED GREEN DOOR ---
     function triggerWin() {
       STATE.playing = false;
       STATE.won = true;
@@ -752,7 +712,7 @@
       const overlay = document.getElementById('screen-overlay');
       document.getElementById('overlay-title').innerText = 'YOU ESCAPED!';
       document.getElementById('overlay-title').style.color = '#00ff22';
-      document.getElementById('overlay-desc').innerText = 'You successfully unlocked the highlighted green door and escaped the Cat!';
+      document.getElementById('overlay-desc').innerText = 'You opened the highlighted green door and escaped!';
 
       const btn = document.getElementById('start-btn');
       btn.innerText = 'PLAY AGAIN';
@@ -761,11 +721,11 @@
       overlay.style.display = 'flex';
     }
 
-    // --- ENGINE TICK / MAIN LOOP ---
+    // --- MAIN TICK ---
     function animate() {
       requestAnimationFrame(animate);
 
-      const delta = Math.min(clock.getDelta(), 0.1); // Clamp delta to avoid massive lag skips
+      const delta = Math.min(clock.getDelta(), 0.1);
 
       if (STATE.playing) {
         updatePlayer(delta);
@@ -773,7 +733,6 @@
         checkInteractions();
       }
 
-      // Render Scene
       renderer.render(scene, camera);
 
       // FPS Monitor
@@ -793,7 +752,6 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // Initialize Engine on Load
     window.onload = () => {
       initEngine();
       animate();
