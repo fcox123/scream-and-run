@@ -3,930 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Needle in a Haystack: Roblox Bacon Edition</title>
+    <title>Needle in a Haystack</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-        }
         body {
-            background-color: #1a0f07;
-            color: #f0e6d2;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        #header {
-            background: linear-gradient(180deg, #2c1a0e 0%, #1a0f07 100%);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #5c3a21;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            z-index: 10;
-        }
-        .title-box h1 {
-            font-size: 1.5rem;
-            color: #e6b800;
-            text-shadow: 1px 1px 2px #000;
-        }
-        .title-box p {
-            font-size: 0.8rem;
-            color: #a89276;
-        }
-        #stats-panel {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        .stat-card {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 6px 14px;
-            border-radius: 6px;
-            border: 1px solid #4a321a;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #ffd700;
-            font-family: monospace;
-        }
-        .stat-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #a89276;
-            letter-spacing: 1px;
-        }
-        #main-container {
-            display: flex;
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        #sidebar {
-            width: 280px;
-            background: #24140a;
-            border-right: 2px solid #4a321a;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding: 15px;
-            z-index: 5;
-            box-shadow: 4px 0 10px rgba(0,0,0,0.3);
-        }
-        .tool-section-title {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            color: #d4af37;
-            border-bottom: 1px solid #4a321a;
-            padding-bottom: 4px;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-        .tool-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        .tool-btn {
-            background: linear-gradient(145deg, #3a2212, #2a180c);
-            border: 1px solid #5c3a21;
-            color: #d4c39c;
-            padding: 10px 6px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.75rem;
-            transition: all 0.2s ease;
-        }
-        .tool-btn:hover {
-            background: #4a2e18;
-            border-color: #8c5a35;
-            color: #fff;
-        }
-        .tool-btn.active {
-            background: linear-gradient(145deg, #8c5a35, #5c3a21);
-            border-color: #ffd700;
-            color: #ffd700;
-            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-        }
-        .tool-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .control-group label {
-            font-size: 0.75rem;
-            color: #a89276;
-            display: flex;
-            justify-content: space-between;
-        }
-        .control-group input[type="range"] {
-            width: 100%;
-            accent-color: #d4af37;
-        }
-        #detector-display {
-            background: #0f1a0f;
-            border: 2px solid #1c3b1c;
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            margin-top: auto;
-        }
-        #signal-meter {
-            width: 100%;
-            height: 16px;
-            background: #050a05;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #2a522a;
-            position: relative;
-        }
-        #signal-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
-            transition: width 0.1s ease;
-        }
-        #detector-status {
-            font-family: monospace;
-            font-size: 0.75rem;
-            color: #00ff00;
-            text-shadow: 0 0 4px rgba(0,255,0,0.5);
-        }
-        #canvas-wrapper {
-            flex: 1;
-            position: relative;
-            cursor: crosshair;
-            background-color: #0e0804;
-            overflow: hidden;
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        #magnifier {
-            position: absolute;
-            width: 160px;
-            height: 160px;
-            border: 4px solid #d4af37;
-            border-radius: 50%;
-            pointer-events: none;
-            display: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,255,255,0.2);
-            overflow: hidden;
-            z-index: 100;
-            transform: translate(-50%, -50%);
-            background: #111;
-        }
-        #magnifier canvas {
-            position: absolute;
-        }
-        #modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.85);
+            background-color: #f4ecd8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
         }
-        .modal {
-            background: linear-gradient(145deg, #2c1a0e, #1a0f07);
-            border: 2px solid #d4af37;
+
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            background: #fff;
+            padding: 20px;
             border-radius: 12px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            color: #5a3d28;
+            margin-top: 0;
         }
-        .modal h2 {
-            color: #ffd700;
-            font-size: 2rem;
-            margin-bottom: 15px;
-        }
-        .modal p {
-            color: #d4c39c;
-            margin-bottom: 20px;
-            line-height: 1.5;
-            font-size: 0.95rem;
-        }
-        .modal button {
-            background: linear-gradient(145deg, #d4af37, #aa820a);
-            border: none;
-            color: #1a0f07;
-            font-weight: bold;
-            font-size: 1.1rem;
-            padding: 12px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .modal button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
-        }
-        #layer-indicator {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid #5c3a21;
-            padding: 10px 15px;
-            border-radius: 8px;
-            pointer-events: none;
+
+        .stats-bar {
             display: flex;
-            flex-direction: column;
-            gap: 5px;
+            justify-content: space-around;
+            background: #e8d7b8;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Haystack Area */
+        .haystack-box {
+            background-color: #fff9e6;
+            border: 3px dashed #d4ac0d;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .haystack {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: radial-gradient(circle, #f7dc6f 0%, #d4ac0d 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .hay-piece {
+            position: absolute;
+            background-color: #b7950b;
+            height: 2px;
+            width: 25px;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .needle {
+            position: absolute;
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(to bottom, #bdc3c7, #2c3e50);
+            border-radius: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
             z-index: 10;
         }
-        .layer-bar {
-            width: 120px;
-            height: 8px;
-            background: #2a180c;
-            border-radius: 4px;
-            overflow: hidden;
-            border: 1px solid #4a321a;
+
+        /* Shop Area */
+        .shop-box {
+            background-color: #eaf2f8;
+            border: 2px solid #aed6f1;
+            border-radius: 8px;
+            padding: 15px;
         }
-        .layer-progress {
-            height: 100%;
-            width: 100%;
-            background: #ffd700;
-            transition: width 0.3s ease;
+
+        .shop-box h2 {
+            margin-top: 0;
+            color: #1b4f72;
+            font-size: 1.3em;
+            text-align: center;
         }
-        .toast {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-50px);
-            background: rgba(212, 175, 55, 0.9);
-            color: #1a0f07;
-            padding: 10px 20px;
-            border-radius: 20px;
+
+        .farmer-section {
+            background: #d4efdf;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 1em;
             font-weight: bold;
-            font-size: 0.9rem;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
-            z-index: 200;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+            transition: background 0.2s;
         }
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
+
+        .btn:hover {
+            background-color: #219653;
+        }
+
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .upgrade-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .upgrade-item h4 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+
+        .upgrade-item p {
+            margin: 0 0 8px 0;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div id="header">
-        <div class="title-box">
-            <h1>Needle in a Haystack</h1>
-            <p>Roblox Bacon 3rd-Person Edition</p>
+<div class="game-container">
+    <h1>🌾 Find the Needle in the Haystack! 🪡</h1>
+
+    <div class="stats-bar">
+        <div>🌾 Hay: <span id="hay-count">0</span></div>
+        <div>🪙 Coins: <span id="coin-count">0</span></div>
+        <div>🪡 Needles Found: <span id="needle-count">0</span></div>
+    </div>
+
+    <div class="game-area">
+        <!-- Search Area -->
+        <div class="haystack-box">
+            <p>Click on the haystack to search for hay! Find the hidden needle to get a huge reward!</p>
+            <div class="haystack" id="haystack">
+                <!-- Needle will be spawned here via JS -->
+            </div>
         </div>
-        <div id="stats-panel">
-            <div class="stat-card">
-                <div class="stat-value" id="timer-display">00:00.0</div>
-                <div class="stat-label">Elapsed Time</div>
+
+        <!-- Shop Area -->
+        <div class="shop-box">
+            <div class="farmer-section">
+                <h2>👨‍🌾 Farmer's Market</h2>
+                <p>Exchange Hay for Coins!</p>
+                <p><strong>1 Hay = 1 Coin</strong></p>
+                <button class="btn" id="sell-btn" onclick="sellHay()">Sell All Hay</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="hay-cleared-display">0%</div>
-                <div class="stat-label">Hay Moved</div>
+
+            <h2>🛒 Shop Upgrades</h2>
+            
+            <div class="upgrade-item">
+                <h4>Pitchfork</h4>
+                <p>Get more hay per click.</p>
+                <button class="btn" id="buy-pitchfork" onclick="buyPitchfork()">Buy (+1 Hay/Click) - <span id="cost-pitchfork">10</span> Coins</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="depth-display">100%</div>
-                <div class="stat-label">Pile Density</div>
+
+            <div class="upgrade-item">
+                <h4>Magnet</h4>
+                <p>Makes the hidden needle larger and easier to see.</p>
+                <button class="btn" id="buy-magnet" onclick="buyMagnet()">Buy Magnet - <span id="cost-magnet">50</span> Coins</button>
+            </div>
+
+            <div class="upgrade-item">
+                <h4>Metal Detector</h4>
+                <p>Automatically finds needles for you over time.</p>
+                <button class="btn" id="buy-detector" onclick="buyDetector()">Buy Detector - <span id="cost-detector">150</span> Coins</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="main-container">
-        <div id="sidebar">
-            <div class="tool-section-title">Search Tools</div>
-            <div class="tool-grid">
-                <button class="tool-btn active" data-tool="hand">
-                    <svg viewBox="0 0 24 24"><path d="M23,5.5V11.5C23,16.75 18.75,21 13.5,21C9.5,21 6.08,18.55 4.67,15C4.24,13.92 3.25,10.39 2.1,6.33C1.93,5.73 2.27,5.08 2.87,4.91C3.47,4.74 4.12,5.08 4.29,5.68L5.33,9.36C5.4,9.6 5.63,9.75 5.87,9.75C6.11,9.75 6.34,9.58 6.4,9.34L7.84,3.58C8,2.97 8.61,2.58 9.22,2.74C9.83,2.9 10.22,3.5 10.06,4.12L8.91,8.73C8.85,8.97 9.08,9.2 9.32,9.2C9.56,9.2 9.77,9.03 9.83,8.79L11.5,2.1C11.66,1.48 12.27,1.1 12.88,1.26C13.5,1.42 13.88,2.03 13.72,2.65L12.18,8.81C12.12,9.05 12.35,9.28 12.59,9.28C12.83,9.28 13.04,9.11 13.1,8.87L14.89,1.7C15.05,1.08 15.66,0.7 16.27,0.86C16.88,1.02 17.27,1.63 17.11,2.25L15.42,9C15.36,9.24 15.58,9.47 15.82,9.47C16.06,9.47 16.27,9.3 16.33,9.06L18.5,1.5C19.11,1.5 19.6,2 19.6,2.61V5.5H23Z"/></svg>
-                    Hands
-                </button>
-                <button class="tool-btn" data-tool="rake">
-                    <svg viewBox="0 0 24 24"><path d="M11 2v8.17A3.001 3.001 0 0 0 9 13v8h2v-8a1 1 0 0 1 2 0v8h2v-8a3.001 3.001 0 0 0-2-2.83V2h-2z"/></svg>
-                    Rake
-                </button>
-                <button class="tool-btn" data-tool="magnifier">
-                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                    Lens
-                </button>
-                <button class="tool-btn" data-tool="detector">
-                    <svg viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-                    Detector
-                </button>
-                <button class="tool-btn" data-tool="magnet">
-                    <svg viewBox="0 0 24 24"><path d="M3 7v6c0 4.97 4.03 9 9 9s9-4.03 9-9V7h-4v6c0 2.76-2.24 5-5 5s-5-2.24-5-5V7H3zm4-5h4v3H7V2zm6 0h4v3h-4V2z"/></svg>
-                    Magnet
-                </button>
-                <button class="tool-btn" data-tool="blower">
-                    <svg viewBox="0 0 24 24"><path d="M3 13h11.17l-3.58 3.59L12 18l6-6-6-6-1.41 1.41L14.17 11H3v2zm16-8h2v14h-2V5z"/></svg>
-                    Blower
-                </button>
-            </div>
+<script>
+    // Game State
+    let hay = 0;
+    let coins = 0;
+    let needlesFound = 0;
 
-            <div class="control-group" style="margin-top: 15px;">
-                <label>Tool Size <span id="tool-size-val">50px</span></label>
-                <input type="range" id="tool-size" min="20" max="120" value="50">
-            </div>
+    let hayPerClick = 1;
+    let magnetLevel = 1;
+    let metalDetectors = 0;
 
-            <div class="control-group">
-                <label>Audio Effects Volume</label>
-                <input type="range" id="volume-control" min="0" max="100" value="70">
-            </div>
+    // Upgrade Costs
+    let pitchforkCost = 10;
+    let magnetCost = 50;
+    let detectorCost = 150;
 
-            <div id="detector-display">
-                <div style="font-size: 0.7rem; color: #8c8c8c; text-transform: uppercase;">Proximity Sensor</div>
-                <div id="signal-meter"><div id="signal-fill"></div></div>
-                <div id="detector-status">SIGNAL: NONE</div>
-            </div>
-        </div>
+    // DOM Elements
+    const haystackEl = document.getElementById('haystack');
+    const hayCountEl = document.getElementById('hay-count');
+    const coinCountEl = document.getElementById('coin-count');
+    const needleCountEl = document.getElementById('needle-count');
+    
+    const sellBtn = document.getElementById('sell-btn');
+    const buyPitchforkBtn = document.getElementById('buy-pitchfork');
+    const buyMagnetBtn = document.getElementById('buy-magnet');
+    const buyDetectorBtn = document.getElementById('buy-detector');
 
-        <div id="canvas-wrapper">
-            <canvas id="gameCanvas"></canvas>
-            <div id="magnifier">
-                <canvas id="magCanvas"></canvas>
-            </div>
-            <div id="layer-indicator">
-                <span style="font-size: 0.7rem; color: #a89276;">LAYER DENSITY</span>
-                <div class="layer-bar"><div class="layer-progress" id="layer-prog-bar"></div></div>
-            </div>
-            <div id="toast" class="toast">Needle found!</div>
-        </div>
-    </div>
+    // Initialize Haystack visuals
+    function createHayVisuals() {
+        haystackEl.innerHTML = '';
+        // Add decorative hay strands
+        for (let i = 0; i < 150; i++) {
+            let strand = document.createElement('div');
+            strand.className = 'hay-piece';
+            strand.style.left = Math.random() * 95 + '%';
+            strand.style.top = Math.random() * 95 + '%';
+            strand.style.transform = `rotate(${Math.random() * 360}deg)`;
+            haystackEl.appendChild(strand);
+        }
+        spawnNeedle();
+    }
 
-    <div id="modal-overlay">
-        <div class="modal">
-            <h2 id="modal-title">The Search Begins</h2>
-            <p id="modal-desc">
-                Help your Roblox Bacon Hair avatar locate the hidden sewing needle inside this massive 3D haystack pile!
-                <br><br>
-                Move your Bacon avatar around using your mouse to push through layers of hay. 
-                It may take up to <strong>20 minutes</strong> of searching!
-            </p>
-            <button id="start-btn">Begin Searching</button>
-        </div>
-    </div>
+    // Spawn Needle at random position
+    function spawnNeedle() {
+        // Remove existing needle if present
+        const oldNeedle = document.getElementById('needle');
+        if (oldNeedle) oldNeedle.remove();
 
-    <script>
-        // CONFIG & PERFORMANCE TUNING
-        const CONFIG = {
-            TOTAL_STRAWS: 12000, // Reduced count for optimized lag-free rendering
-            LAYERS: 5,
-            NEEDLE_SIZE: 22,
-            NEEDLE_THICKNESS: 2,
-            MAGNET_FORCE: 4.5,
-            GRID_SIZE: 80
+        const needle = document.createElement('div');
+        needle.id = 'needle';
+        needle.className = 'needle';
+        
+        // Scale needle based on Magnet Level
+        const scale = 1 + (magnetLevel - 1) * 0.5;
+        needle.style.transform = `scale(${scale}) rotate(${Math.random() * 360}deg)`;
+
+        // Random position (keeping inside bounds)
+        const x = Math.random() * 85 + 5;
+        const y = Math.random() * 85 + 5;
+        needle.style.left = x + '%';
+        needle.style.top = y + '%';
+
+        needle.onclick = (e) => {
+            e.stopPropagation(); // Prevent trigger haystack click
+            foundNeedle();
         };
 
-        const state = {
-            gameStarted: false,
-            gameWon: false,
-            startTime: 0,
-            elapsedTime: 0,
-            activeTool: 'hand',
-            toolSize: 50,
-            volume: 0.7,
-            mouseX: 0,
-            mouseY: 0,
-            baconX: 200,
-            baconY: 200,
-            baconAngle: 0,
-            isMouseDown: false,
-            hayCleared: 0,
-            needleX: 0,
-            needleY: 0,
-            needleLayer: 4,
-            needleAngle: Math.random() * Math.PI * 2,
-            proximity: 0,
-            soundTicks: 0
-        };
+        haystackEl.appendChild(needle);
+    }
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const magCanvas = document.getElementById('magCanvas');
-        const magCtx = magCanvas.getContext('2d');
-        const magnifierEl = document.getElementById('magnifier');
-        const timerDisplay = document.getElementById('timer-display');
-        const hayClearedDisplay = document.getElementById('hay-cleared-display');
-        const signalFill = document.getElementById('signal-fill');
-        const detectorStatus = document.getElementById('detector-status');
-        const modalOverlay = document.getElementById('modal-overlay');
-        const startBtn = document.getElementById('start-btn');
-        const toastEl = document.getElementById('toast');
+    // Click Haystack
+    haystackEl.onclick = () => {
+        hay += hayPerClick;
+        updateUI();
+    };
 
-        // Audio System
-        class SoundEngine {
-            constructor() {
-                this.ctx = null;
-                this.initialized = false;
-            }
+    // Found Needle Event
+    function foundNeedle() {
+        needlesFound++;
+        const bonusHay = 50 * magnetLevel;
+        const bonusCoins = 25 * magnetLevel;
+        
+        hay += bonusHay;
+        coins += bonusCoins;
 
-            init() {
-                if (this.initialized) return;
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
-                this.initialized = true;
-            }
+        alert(`🎉 You found the needle!\nRewards:\n+${bonusHay} Hay\n+${bonusCoins} Coins`);
+        
+        spawnNeedle();
+        updateUI();
+    }
 
-            playRustle() {
-                if (!this.initialized || state.volume === 0) return;
-                try {
-                    const bufferSize = this.ctx.sampleRate * 0.05;
-                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                    const output = buffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        output[i] = Math.random() * 2 - 1;
-                    }
+    // Sell Hay to Farmer
+    function sellHay() {
+        if (hay > 0) {
+            coins += hay;
+            hay = 0;
+            updateUI();
+        }
+    }
 
-                    const whiteNoise = this.ctx.createBufferSource();
-                    whiteNoise.buffer = buffer;
+    // Upgrades
+    function buyPitchfork() {
+        if (coins >= pitchforkCost) {
+            coins -= pitchforkCost;
+            hayPerClick += 1;
+            pitchforkCost = Math.floor(pitchforkCost * 1.5);
+            updateUI();
+        }
+    }
 
-                    const filter = this.ctx.createBiquadFilter();
-                    filter.type = 'bandpass';
-                    filter.frequency.value = 800 + Math.random() * 400;
+    function buyMagnet() {
+        if (coins >= magnetCost) {
+            coins -= magnetCost;
+            magnetLevel += 1;
+            magnetCost = Math.floor(magnetCost * 2);
+            spawnNeedle(); // Rescale current needle
+            updateUI();
+        }
+    }
 
-                    const gain = this.ctx.createGain();
-                    gain.gain.setValueAtTime(0.03 * state.volume, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+    function buyDetector() {
+        if (coins >= detectorCost) {
+            coins -= detectorCost;
+            metalDetectors += 1;
+            detectorCost = Math.floor(detectorCost * 2.2);
+            updateUI();
+        }
+    }
 
-                    whiteNoise.connect(filter);
-                    filter.connect(gain);
-                    gain.connect(this.ctx.destination);
-
-                    whiteNoise.start();
-                } catch(e){}
-            }
-
-            playBeep(freq = 440) {
-                if (!this.initialized || state.volume === 0) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.08 * state.volume, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
-
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + 0.04);
-                } catch(e){}
-            }
-
-            playClink() {
-                if (!this.initialized || state.volume === 0) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(2400, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.2 * state.volume, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
-
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + 0.2);
-                } catch(e){}
+    // Auto Detector Loop (Interval)
+    setInterval(() => {
+        if (metalDetectors > 0) {
+            // Chance to find needle automatically based on detector count
+            if (Math.random() < 0.1 * metalDetectors) {
+                foundNeedle();
             }
         }
+    }, 3000);
+
+    // Update UI elements & button states
+    function updateUI() {
+        hayCountEl.textContent = hay;
+        coinCountEl.textContent = coins;
+        needleCountEl.textContent = needlesFound;
+
+        document.getElementById('cost-pitchfork').textContent = pitchforkCost;
+        document.getElementById('cost-magnet').textContent = magnetCost;
+        document.getElementById('cost-detector').textContent = detectorCost;
+
+        sellBtn.disabled = hay === 0;
+        buyPitchforkBtn.disabled = coins < pitchforkCost;
+        buyMagnetBtn.disabled = coins < magnetCost;
+        buyDetectorBtn.disabled = coins < detectorCost;
+    }
+
+    // Game Start
+    createHayVisuals();
+    updateUI();
+</script>
 
-        const audioCtx = new SoundEngine();
-
-        // Optimized Straw Object (Simplified Render)
-        class Straw {
-            constructor(x, y, layer) {
-                this.x = x;
-                this.y = y;
-                this.originX = x;
-                this.originY = y;
-                this.layer = layer;
-                this.length = 25 + Math.random() * 35;
-                this.angle = Math.random() * Math.PI * 2;
-                
-                const hues = [40, 43, 48, 35, 50];
-                const h = hues[Math.floor(Math.random() * hues.length)];
-                const s = 60 + Math.random() * 30;
-                const l = 25 + (layer * 8) + Math.random() * 15;
-                this.color = `hsl(${h}, ${s}%, ${l}%)`;
-                
-                this.vx = 0;
-                this.vy = 0;
-                this.removed = false;
-            }
-
-            draw(context) {
-                if (this.removed) return;
-                context.strokeStyle = this.color;
-                context.lineWidth = 1.8;
-                context.beginPath();
-                const cos = Math.cos(this.angle) * (this.length / 2);
-                const sin = Math.sin(this.angle) * (this.length / 2);
-                context.moveTo(this.x - cos, this.y - sin);
-                context.lineTo(this.x + cos, this.y + sin);
-                context.stroke();
-            }
-
-            update() {
-                if (this.removed) return;
-                if (this.vx !== 0 || this.vy !== 0) {
-                    this.x += this.vx;
-                    this.y += this.vy;
-                    this.vx *= 0.82;
-                    this.vy *= 0.82;
-                    if (Math.abs(this.vx) < 0.01) this.vx = 0;
-                    if (Math.abs(this.vy) < 0.01) this.vy = 0;
-                }
-            }
-        }
-
-        let straws = [];
-        let grid = {};
-        let canvasWidth = 0;
-        let canvasHeight = 0;
-
-        function getGridKey(x, y) {
-            const gx = Math.floor(x / CONFIG.GRID_SIZE);
-            const gy = Math.floor(y / CONFIG.GRID_SIZE);
-            return `${gx},${gy}`;
-        }
-
-        function initGame() {
-            resizeCanvas();
-            straws = [];
-            grid = {};
-
-            const margin = 100;
-            state.needleX = margin + Math.random() * (canvasWidth - margin * 2);
-            state.needleY = margin + Math.random() * (canvasHeight - margin * 2);
-            state.needleAngle = Math.random() * Math.PI * 2;
-            state.needleFound = false;
-
-            for (let l = 0; l < CONFIG.LAYERS; l++) {
-                const countPerLayer = Math.floor(CONFIG.TOTAL_STRAWS / CONFIG.LAYERS);
-                for (let i = 0; i < countPerLayer; i++) {
-                    const x = Math.random() * canvasWidth;
-                    const y = Math.random() * canvasHeight;
-                    const s = new Straw(x, y, l);
-                    straws.push(s);
-                }
-            }
-
-            state.baconX = canvasWidth / 2;
-            state.baconY = canvasHeight / 2;
-            state.startTime = Date.now();
-            state.gameStarted = true;
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function resizeCanvas() {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvasWidth = rect.width;
-            canvasHeight = rect.height;
-
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-
-            magCanvas.width = 160;
-            magCanvas.height = 160;
-        }
-
-        window.addEventListener('resize', () => {
-            if (state.gameStarted) resizeCanvas();
-        });
-
-        // 3RD PERSON ROBLOX BACON HAIR CHARACTER DRAWING
-        function drawBaconHairAvatar(context, x, y, angle) {
-            context.save();
-            context.translate(x, y);
-
-            // Fake 3D tilt perspective scale
-            context.scale(1, 0.85);
-
-            // Shadow
-            context.beginPath();
-            context.ellipse(0, 15, 18, 10, 0, 0, Math.PI * 2);
-            context.fillStyle = 'rgba(0,0,0,0.35)';
-            context.fill();
-
-            // Legs (R15 Style Blocky)
-            context.fillStyle = '#1c2833'; // Dark jeans
-            context.fillRect(-10, 2, 8, 12);
-            context.fillRect(2, 2, 8, 12);
-
-            // Torso (Classic Roblox Blue Shirt)
-            context.fillStyle = '#2980b9';
-            context.fillRect(-12, -14, 24, 18);
-
-            // Head (Blocky yellow)
-            context.fillStyle = '#f1c40f';
-            context.fillRect(-8, -26, 16, 12);
-
-            // Bacon Hair Strands
-            context.fillStyle = '#6e2c00'; // Dark brown bacon hair
-            context.fillRect(-9, -29, 18, 5);
-            context.fillRect(-7, -32, 14, 4);
-            context.fillStyle = '#d35400'; // Bacon stripe highlights
-            context.fillRect(-5, -31, 10, 2);
-
-            // Face (Classic Roblox Smile)
-            context.fillStyle = '#000';
-            context.fillRect(-4, -22, 2, 2);
-            context.fillRect(2, -22, 2, 2);
-            context.beginPath();
-            context.arc(0, -18, 3, 0, Math.PI);
-            context.stroke();
-
-            context.restore();
-        }
-
-        function applyToolEffect(x, y) {
-            if (!state.gameStarted || state.gameWon) return;
-
-            const radius = parseInt(state.toolSize);
-            let active = false;
-
-            // Spatial Grid optimization for fast physics loops
-            straws.forEach(s => {
-                const dx = s.x - x;
-                const dy = s.y - y;
-                if (Math.abs(dx) < radius && Math.abs(dy) < radius) {
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < radius) {
-                        const force = (1 - dist / radius) * 10;
-                        const ang = Math.atan2(dy, dx);
-
-                        if (state.activeTool === 'hand') {
-                            s.vx += Math.cos(ang) * force;
-                            s.vy += Math.sin(ang) * force;
-                        } else if (state.activeTool === 'rake' || state.activeTool === 'blower') {
-                            s.vx += Math.cos(ang) * force * 2;
-                            s.vy += Math.sin(ang) * force * 2;
-                            if (Math.random() < 0.08) s.removed = true;
-                        }
-                        active = true;
-                    }
-                }
-            });
-
-            if (state.activeTool === 'magnet') {
-                const ndx = state.needleX - x;
-                const ndy = state.needleY - y;
-                const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
-                if (nDist < radius * 2) {
-                    const pullAngle = Math.atan2(ndy, ndx);
-                    state.needleX -= Math.cos(pullAngle) * CONFIG.MAGNET_FORCE;
-                    state.needleY -= Math.sin(pullAngle) * CONFIG.MAGNET_FORCE;
-                    audioCtx.playClink();
-                }
-            }
-
-            if (active) {
-                state.soundTicks++;
-                if (state.soundTicks % 6 === 0) audioCtx.playRustle();
-            }
-        }
-
-        function drawNeedle(context) {
-            context.save();
-            context.translate(state.needleX, state.needleY);
-            context.rotate(state.needleAngle);
-
-            context.beginPath();
-            context.moveTo(-CONFIG.NEEDLE_SIZE / 2, 0);
-            context.lineTo(CONFIG.NEEDLE_SIZE / 2, 0);
-            context.strokeStyle = '#e6e6e6';
-            context.lineWidth = CONFIG.NEEDLE_THICKNESS;
-            context.lineCap = 'round';
-            context.stroke();
-
-            context.restore();
-        }
-
-        function render() {
-            ctx.fillStyle = '#0e0804';
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-            let remainingStraws = 0;
-            let needleDrawn = false;
-
-            // Smooth 3rd person Bacon Character movement toward cursor
-            const dx = state.mouseX - state.baconX;
-            const dy = state.mouseY - state.baconY;
-            state.baconX += dx * 0.15;
-            state.baconY += dy * 0.15;
-            state.baconAngle = Math.atan2(dy, dx);
-
-            // Render Straws & Layers
-            for (let l = 0; l < CONFIG.LAYERS; l++) {
-                straws.forEach(s => {
-                    if (s.layer === l && !s.removed) {
-                        s.update();
-                        s.draw(ctx);
-                        remainingStraws++;
-                    }
-                });
-
-                if (l === state.needleLayer && !needleDrawn) {
-                    drawNeedle(ctx);
-                    needleDrawn = true;
-                }
-            }
-
-            // Draw Roblox Bacon Hair Character
-            drawBaconHairAvatar(ctx, state.baconX, state.baconY, state.baconAngle);
-
-            // Stats
-            const clearedPercent = Math.min(100, Math.max(0, Math.floor(((CONFIG.TOTAL_STRAWS - remainingStraws) / CONFIG.TOTAL_STRAWS) * 100)));
-            hayClearedDisplay.textContent = `${clearedPercent}%`;
-
-            if (state.activeTool === 'magnifier') updateMagnifier();
-        }
-
-        function updateMagnifier() {
-            const size = 160;
-            const zoom = 2.2;
-
-            magCtx.fillStyle = '#0e0804';
-            magCtx.fillRect(0, 0, size, size);
-
-            magCtx.save();
-            magCtx.translate(size / 2, size / 2);
-            magCtx.scale(zoom, zoom);
-            magCtx.translate(-state.baconX, -state.baconY);
-
-            straws.forEach(s => {
-                if (!s.removed && Math.abs(s.x - state.baconX) < 80 && Math.abs(s.y - state.baconY) < 80) {
-                    s.draw(magCtx);
-                }
-            });
-            drawNeedle(magCtx);
-
-            magCtx.restore();
-        }
-
-        function updateDetector() {
-            const dx = state.needleX - state.baconX;
-            const dy = state.needleY - state.baconY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const maxDist = Math.max(canvasWidth, canvasHeight) * 0.5;
-
-            let proximity = Math.max(0, 1 - dist / maxDist);
-            proximity = Math.pow(proximity, 2);
-            state.proximity = proximity;
-
-            signalFill.style.width = `${Math.floor(proximity * 100)}%`;
-
-            if (proximity > 0.85) {
-                detectorStatus.textContent = 'SIGNAL: CRITICAL';
-                detectorStatus.style.color = '#ff0000';
-            } else if (proximity > 0.4) {
-                detectorStatus.textContent = 'SIGNAL: STRONG';
-                detectorStatus.style.color = '#ffff00';
-            } else {
-                detectorStatus.textContent = 'SIGNAL: WEAK';
-                detectorStatus.style.color = '#00ff00';
-            }
-
-            if (state.activeTool === 'detector' && state.gameStarted && !state.gameWon) {
-                if (Math.random() < proximity * 0.3) {
-                    audioCtx.playBeep(300 + proximity * 1000);
-                }
-            }
-        }
-
-        function checkWinCondition() {
-            if (state.gameWon) return;
-
-            const dx = state.needleX - state.baconX;
-            const dy = state.needleY - state.baconY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (state.isMouseDown && dist < CONFIG.NEEDLE_SIZE * 1.5) {
-                triggerWin();
-            }
-        }
-
-        function triggerWin() {
-            state.gameWon = true;
-            audioCtx.playClink();
-            showModal("NEEDLE FOUND!", `Great job! Your Bacon character found the hidden needle in <strong>${timerDisplay.textContent}</strong>!`);
-        }
-
-        function showModal(title, text) {
-            document.getElementById('modal-title').innerHTML = title;
-            document.getElementById('modal-desc').innerHTML = text;
-            modalOverlay.style.display = 'flex';
-        }
-
-        function updateTimer() {
-            if (!state.gameStarted || state.gameWon) return;
-            state.elapsedTime = Date.now() - state.startTime;
-            const totalSecs = Math.floor(state.elapsedTime / 1000);
-            const mins = Math.floor(totalSecs / 60).toString().padStart(2, '0');
-            const secs = (totalSecs % 60).toString().padStart(2, '0');
-            const ms = Math.floor((state.elapsedTime % 1000) / 100);
-            timerDisplay.textContent = `${mins}:${secs}.${ms}`;
-        }
-
-        function gameLoop() {
-            if (!state.gameStarted) return;
-            updateTimer();
-            if (state.isMouseDown) {
-                applyToolEffect(state.baconX, state.baconY);
-            }
-            updateDetector();
-            checkWinCondition();
-            render();
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        const canvasWrapper = document.getElementById('canvas-wrapper');
-
-        canvasWrapper.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            state.mouseX = e.clientX - rect.left;
-            state.mouseY = e.clientY - rect.top;
-
-            if (state.activeTool === 'magnifier') {
-                magnifierEl.style.display = 'block';
-                magnifierEl.style.left = `${state.mouseX}px`;
-                magnifierEl.style.top = `${state.mouseY}px`;
-            } else {
-                magnifierEl.style.display = 'none';
-            }
-        });
-
-        canvasWrapper.addEventListener('mousedown', (e) => {
-            if (e.button === 0) {
-                state.isMouseDown = true;
-                audioCtx.init();
-                applyToolEffect(state.baconX, state.baconY);
-            }
-        });
-
-        window.addEventListener('mouseup', () => { state.isMouseDown = false; });
-
-        document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                const target = e.currentTarget;
-                target.classList.add('active');
-                state.activeTool = target.getAttribute('data-tool');
-                if (state.activeTool !== 'magnifier') magnifierEl.style.display = 'none';
-            });
-        });
-
-        document.getElementById('tool-size').addEventListener('input', (e) => {
-            state.toolSize = e.target.value;
-            document.getElementById('tool-size-val').textContent = `${e.target.value}px`;
-        });
-
-        document.getElementById('volume-control').addEventListener('input', (e) => {
-            state.volume = e.target.value / 100;
-        });
-
-        startBtn.addEventListener('click', () => {
-            audioCtx.init();
-            modalOverlay.style.display = 'none';
-            initGame();
-        });
-    </script>
 </body>
 </html>
