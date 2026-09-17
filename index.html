@@ -3,373 +3,736 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Needle in a Haystack</title>
+    <title>Needle in a Haystack - Farmer Tycoon</title>
     <style>
+        /* ==========================================================================
+           GLOBAL & RESET STYLES
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4ecd8;
+            background: #f7f3e9;
             color: #333;
-            margin: 0;
-            padding: 20px;
             display: flex;
-            justify-content: center;
-        }
-
-        .game-container {
-            width: 100%;
-            max-width: 900px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #5a3d28;
-            margin-top: 0;
-        }
-
-        .stats-bar {
-            display: flex;
-            justify-content: space-around;
-            background: #e8d7b8;
-            padding: 15px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 20px;
-        }
-
-        .game-area {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
-
-        /* Haystack Area */
-        .haystack-box {
-            background-color: #fff9e6;
-            border: 3px dashed #d4ac0d;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .haystack {
-            position: relative;
-            width: 100%;
-            height: 350px;
-            background: radial-gradient(circle, #f7dc6f 0%, #d4ac0d 100%);
-            border-radius: 8px;
+            flex-direction: column;
+            height: 100vh;
             overflow: hidden;
-            cursor: pointer;
-            margin-top: 10px;
         }
 
-        .hay-piece {
+        /* ==========================================================================
+           HEADER & NAVBAR
+           ========================================================================== */
+        header {
+            background-color: #8B5A2B;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+        }
+
+        .currency-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .stat-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ==========================================================================
+           MAIN GAME CONTAINER
+           ========================================================================== */
+        .game-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+        }
+
+        /* LEFT PANEL: Haystack Interaction Area */
+        .haystack-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #fff8dc 0%, #e6ca65 100%);
+            position: relative;
+            border-right: 3px solid #d4a373;
+            overflow: hidden;
+        }
+
+        .haystack-target {
+            width: 280px;
+            height: 280px;
+            background: #d4a373;
+            border-radius: 50% 50% 45% 45%;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+            transition: transform 0.05s ease, filter 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 8px solid #bc8a5f;
+            overflow: hidden;
+        }
+
+        .haystack-target:hover {
+            filter: brightness(1.05);
+        }
+
+        .haystack-target:active {
+            transform: scale(0.96);
+        }
+
+        .hay-texture {
             position: absolute;
-            background-color: #b7950b;
-            height: 2px;
-            width: 25px;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            background-image: repeating-linear-gradient(45deg, #fff 0, #fff 2px, transparent 0, transparent 8px);
+        }
+
+        .click-prompt {
+            position: absolute;
+            bottom: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #5c3d11;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
             pointer-events: none;
-            opacity: 0.6;
         }
 
-        .needle {
+        /* Floating Click Floating Text Effect */
+        .floating-text {
             position: absolute;
-            width: 4px;
-            height: 24px;
-            background: linear-gradient(to bottom, #bdc3c7, #2c3e50);
-            border-radius: 2px;
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
             z-index: 10;
         }
 
-        /* Shop Area */
-        .shop-box {
-            background-color: #eaf2f8;
-            border: 2px solid #aed6f1;
-            border-radius: 8px;
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.2);
+            }
+        }
+
+        /* RIGHT PANEL: Farmer Market & Upgrades */
+        .dashboard-section {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            background: #fefae0;
+            overflow-y: auto;
+        }
+
+        .tabs {
+            display: flex;
+            background: #dda15e;
+        }
+
+        .tab-btn {
+            flex: 1;
             padding: 15px;
-        }
-
-        .shop-box h2 {
-            margin-top: 0;
-            color: #1b4f72;
-            font-size: 1.3em;
-            text-align: center;
-        }
-
-        .farmer-section {
-            background: #d4efdf;
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .btn {
-            background-color: #27ae60;
-            color: white;
             border: none;
-            padding: 10px 15px;
-            font-size: 1em;
+            background: transparent;
             font-weight: bold;
-            border-radius: 5px;
+            font-size: 1rem;
+            color: #283618;
             cursor: pointer;
-            width: 100%;
-            margin-top: 5px;
             transition: background 0.2s;
         }
 
-        .btn:hover {
-            background-color: #219653;
+        .tab-btn.active {
+            background: #fefae0;
+            border-bottom: 3px solid #606c38;
         }
 
-        .btn:disabled {
-            background-color: #bdc3c7;
+        .tab-content {
+            display: none;
+            padding: 20px;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Farmer Market Section */
+        .market-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid #606c38;
+        }
+
+        .market-info h3 {
+            color: #283618;
+            margin-bottom: 5px;
+        }
+
+        .market-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .action-btn {
+            background: #606c38;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .action-btn:hover {
+            background: #283618;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .action-btn:disabled {
+            background: #ccc;
             cursor: not-allowed;
         }
 
-        .upgrade-item {
-            background: white;
-            padding: 10px;
+        /* Upgrade Items List */
+        .upgrade-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .upgrade-details h4 {
+            color: #283618;
+            font-size: 1.1rem;
+        }
+
+        .upgrade-details p {
+            color: #777;
+            font-size: 0.85rem;
+            margin-top: 3px;
+        }
+
+        .cost-tag {
+            font-weight: bold;
+            color: #b91c1c;
+        }
+
+        /* Achievements Panel */
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .achievement-card {
+            background: #fff;
+            padding: 12px;
             border-radius: 6px;
-            margin-bottom: 10px;
             border: 1px solid #ddd;
+            opacity: 0.5;
+            transition: opacity 0.3s;
         }
 
-        .upgrade-item h4 {
-            margin: 0 0 5px 0;
-            color: #2c3e50;
+        .achievement-card.unlocked {
+            opacity: 1;
+            border-color: #d4a373;
+            background: #fffbeb;
         }
 
-        .upgrade-item p {
-            margin: 0 0 8px 0;
-            font-size: 0.85em;
+        .achievement-card h5 {
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .achievement-card p {
+            font-size: 0.8rem;
             color: #666;
+            margin-top: 4px;
         }
 
-        /* Responsive */
-        @media (max-width: 700px) {
-            .game-area {
-                grid-template-columns: 1fr;
-            }
+        /* Notification Popup */
+        #notification-area {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .toast {
+            background: #333;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s, fadeOut 0.3s 2.7s forwards;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
         }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <h1>🌾 Find the Needle in the Haystack! 🪡</h1>
-
-    <div class="stats-bar">
-        <div>🌾 Hay: <span id="hay-count">0</span></div>
-        <div>🪙 Coins: <span id="coin-count">0</span></div>
-        <div>🪡 Needles Found: <span id="needle-count">0</span></div>
-    </div>
-
-    <div class="game-area">
-        <!-- Search Area -->
-        <div class="haystack-box">
-            <p>Click on the haystack to search for hay! Find the hidden needle to get a huge reward!</p>
-            <div class="haystack" id="haystack">
-                <!-- Needle will be spawned here via JS -->
-            </div>
+    <!-- TOP HEADER BAR -->
+    <header>
+        <h1>🌾 Needle in a Haystack</h1>
+        <div class="currency-bar">
+            <div class="stat-badge">🌾 Hay: <span id="hay-count">0</span></div>
+            <div class="stat-badge">🪙 Coins: <span id="coin-count">0</span></div>
+            <div class="stat-badge">🪡 Needles: <span id="needle-count">0</span></div>
         </div>
+    </header>
 
-        <!-- Shop Area -->
-        <div class="shop-box">
-            <div class="farmer-section">
-                <h2>👨‍🌾 Farmer's Market</h2>
-                <p>Exchange Hay for Coins!</p>
-                <p><strong>1 Hay = 1 Coin</strong></p>
-                <button class="btn" id="sell-btn" onclick="sellHay()">Sell All Hay</button>
-            </div>
-
-            <h2>🛒 Shop Upgrades</h2>
-            
-            <div class="upgrade-item">
-                <h4>Pitchfork</h4>
-                <p>Get more hay per click.</p>
-                <button class="btn" id="buy-pitchfork" onclick="buyPitchfork()">Buy (+1 Hay/Click) - <span id="cost-pitchfork">10</span> Coins</button>
-            </div>
-
-            <div class="upgrade-item">
-                <h4>Magnet</h4>
-                <p>Makes the hidden needle larger and easier to see.</p>
-                <button class="btn" id="buy-magnet" onclick="buyMagnet()">Buy Magnet - <span id="cost-magnet">50</span> Coins</button>
-            </div>
-
-            <div class="upgrade-item">
-                <h4>Metal Detector</h4>
-                <p>Automatically finds needles for you over time.</p>
-                <button class="btn" id="buy-detector" onclick="buyDetector()">Buy Detector - <span id="cost-detector">150</span> Coins</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // Game State
-    let hay = 0;
-    let coins = 0;
-    let needlesFound = 0;
-
-    let hayPerClick = 1;
-    let magnetLevel = 1;
-    let metalDetectors = 0;
-
-    // Upgrade Costs
-    let pitchforkCost = 10;
-    let magnetCost = 50;
-    let detectorCost = 150;
-
-    // DOM Elements
-    const haystackEl = document.getElementById('haystack');
-    const hayCountEl = document.getElementById('hay-count');
-    const coinCountEl = document.getElementById('coin-count');
-    const needleCountEl = document.getElementById('needle-count');
-    
-    const sellBtn = document.getElementById('sell-btn');
-    const buyPitchforkBtn = document.getElementById('buy-pitchfork');
-    const buyMagnetBtn = document.getElementById('buy-magnet');
-    const buyDetectorBtn = document.getElementById('buy-detector');
-
-    // Initialize Haystack visuals
-    function createHayVisuals() {
-        haystackEl.innerHTML = '';
-        // Add decorative hay strands
-        for (let i = 0; i < 150; i++) {
-            let strand = document.createElement('div');
-            strand.className = 'hay-piece';
-            strand.style.left = Math.random() * 95 + '%';
-            strand.style.top = Math.random() * 95 + '%';
-            strand.style.transform = `rotate(${Math.random() * 360}deg)`;
-            haystackEl.appendChild(strand);
-        }
-        spawnNeedle();
-    }
-
-    // Spawn Needle at random position
-    function spawnNeedle() {
-        // Remove existing needle if present
-        const oldNeedle = document.getElementById('needle');
-        if (oldNeedle) oldNeedle.remove();
-
-        const needle = document.createElement('div');
-        needle.id = 'needle';
-        needle.className = 'needle';
+    <!-- MAIN GAME WORKSPACE -->
+    <div class="game-container">
         
-        // Scale needle based on Magnet Level
-        const scale = 1 + (magnetLevel - 1) * 0.5;
-        needle.style.transform = `scale(${scale}) rotate(${Math.random() * 360}deg)`;
+        <!-- HAYSTACK CLICKING AREA -->
+        <div class="haystack-section" id="haystack-area">
+            <div class="haystack-target" id="haystack-btn">
+                <div class="hay-texture"></div>
+                <span style="font-size: 3rem;">🌾</span>
+            </div>
+            <div class="click-prompt">Click the Haystack to Search!</div>
+        </div>
 
-        // Random position (keeping inside bounds)
-        const x = Math.random() * 85 + 5;
-        const y = Math.random() * 85 + 5;
-        needle.style.left = x + '%';
-        needle.style.top = y + '%';
+        <!-- RIGHT TAB PANEL -->
+        <div class="dashboard-section">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('market')">🧑‍🌾 Farmer's Market</button>
+                <button class="tab-btn" onclick="switchTab('upgrades')">⚙️ Upgrades</button>
+                <button class="tab-btn" onclick="switchTab('stats')">📊 Stats & Trophies</button>
+            </div>
 
-        needle.onclick = (e) => {
-            e.stopPropagation(); // Prevent trigger haystack click
-            foundNeedle();
+            <!-- TAB 1: FARMER'S MARKET -->
+            <div id="tab-market" class="tab-content active">
+                <h2>Farmer's Trade Depot</h2>
+                <p>Sell your raw hay to the local farmer for shiny coins! Rate: <strong>1 Hay = 1 Coin</strong></p>
+                
+                <div class="market-card">
+                    <div class="market-info">
+                        <h3>Sell Single Hay</h3>
+                        <p>Sell 1 unit of hay for 1 coin.</p>
+                    </div>
+                    <button class="action-btn" id="sell-one-btn" onclick="sellHay(1)">Sell 1 Hay</button>
+                </div>
+
+                <div class="market-card">
+                    <div class="market-info">
+                        <h3>Sell Half Stack</h3>
+                        <p>Sell 50% of your current stored hay.</p>
+                    </div>
+                    <button class="action-btn" id="sell-half-btn" onclick="sellHalfHay()">Sell 50%</button>
+                </div>
+
+                <div class="market-card">
+                    <div class="market-info">
+                        <h3>Sell All Hay</h3>
+                        <p>Sell all of your collected hay at once.</p>
+                    </div>
+                    <button class="action-btn" id="sell-all-btn" onclick="sellAllHay()">Sell All</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: UPGRADES -->
+            <div id="tab-upgrades" class="tab-content">
+                <h2>Farm Equipment & Upgrades</h2>
+                <div id="upgrades-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Upgrades injected via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 3: STATS & ACHIEVEMENTS -->
+            <div id="tab-stats" class="tab-content">
+                <h2>Your Farm Statistics</h2>
+                <div style="background: #fff; padding: 15px; border-radius: 8px; font-size: 0.95rem; line-height: 1.6;">
+                    <p>Total Clicks: <strong id="stat-clicks">0</strong></p>
+                    <p>Total Hay Harvested: <strong id="stat-total-hay">0</strong></p>
+                    <p>Total Coins Earned: <strong id="stat-total-coins">0</strong></p>
+                    <p>Total Needles Found: <strong id="stat-total-needles">0</strong></p>
+                    <p>Current Needle Finding Chance: <strong id="stat-needle-chance">0.1%</strong></p>
+                </div>
+
+                <h3 style="margin-top: 15px;">Achievements</h3>
+                <div class="achievement-grid" id="achievements-list">
+                    <!-- Achievements injected via JS -->
+                </div>
+
+                <button class="action-btn" style="background: #c92a2a; margin-top: 20px;" onclick="resetGame()">Reset Game Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION AREA -->
+    <div id="notification-area"></div>
+
+    <!-- GAME LOGIC JAVASCRIPT -->
+    <script>
+        /* ==========================================================================
+           GAME STATE & VARIABLES
+           ========================================================================== */
+        let state = {
+            hay: 0,
+            coins: 0,
+            needles: 0,
+            totalClicks: 0,
+            totalHay: 0,
+            totalCoins: 0,
+            totalNeedles: 0,
+            clickPower: 1,
+            autoHayPerSec: 0,
+            autoSellPerSec: 0,
+            needleChance: 0.005, // 0.5% initial chance per click
+            upgrades: {
+                pitchfork: { count: 0, cost: 15, baseCost: 15, power: 1, name: "Wooden Pitchfork", desc: "+1 Hay per click" },
+                gloves: { count: 0, cost: 50, baseCost: 50, power: 0.002, name: "Thick Gloves", desc: "Increases needle find chance" },
+                helper: { count: 0, cost: 100, baseCost: 100, power: 1, name: "Farm Helper", desc: "Automatically gathers 1 hay/sec" },
+                magnet: { count: 0, cost: 250, baseCost: 250, power: 0.005, name: "Hand Magnet", desc: "Significantly boosts needle chance" },
+                trader: { count: 0, cost: 500, baseCost: 500, power: 1, name: "Automated Trader", desc: "Sells 1 Hay automatically per sec" },
+                baler: { count: 0, cost: 1200, baseCost: 1200, power: 15, name: "Hay Baler Machine", desc: "Gathers 15 hay/sec" }
+            },
+            achievements: {
+                first_click: { unlocked: false, name: "First Search", desc: "Search through the haystack for the first time." },
+                first_needle: { unlocked: false, name: "Sharp Eye!", desc: "Find your very first needle in the haystack!" },
+                first_sale: { unlocked: false, name: "Honest Work", desc: "Sell your first piece of hay to the farmer." },
+                hay_hoarder: { unlocked: false, name: "Hay Stack Builder", desc: "Accumulate 500 Hay in storage." },
+                rich_farmer: { unlocked: false, name: "Gold Digger", desc: "Earn a total of 1,000 coins." },
+                needle_collector: { unlocked: false, name: "Collector", desc: "Find 10 needles." }
+            }
         };
 
-        haystackEl.appendChild(needle);
-    }
+        /* ==========================================================================
+           CORE GAME FUNCTIONS
+           ========================================================================== */
 
-    // Click Haystack
-    haystackEl.onclick = () => {
-        hay += hayPerClick;
-        updateUI();
-    };
+        function init() {
+            loadGame();
+            renderUpgrades();
+            renderAchievements();
+            updateUI();
 
-    // Found Needle Event
-    function foundNeedle() {
-        needlesFound++;
-        const bonusHay = 50 * magnetLevel;
-        const bonusCoins = 25 * magnetLevel;
-        
-        hay += bonusHay;
-        coins += bonusCoins;
+            // Setup Event Listener for Main Target
+            document.getElementById('haystack-btn').addEventListener('click', searchHaystack);
 
-        alert(`🎉 You found the needle!\nRewards:\n+${bonusHay} Hay\n+${bonusCoins} Coins`);
-        
-        spawnNeedle();
-        updateUI();
-    }
+            // Game Loop (Runs every second)
+            setInterval(gameLoop, 1000);
+            
+            // Auto Save Loop (Runs every 10 seconds)
+            setInterval(saveGame, 10000);
+        }
 
-    // Sell Hay to Farmer
-    function sellHay() {
-        if (hay > 0) {
-            coins += hay;
-            hay = 0;
+        // Search Haystack Click Action
+        function searchHaystack(e) {
+            state.totalClicks++;
+            
+            // Calculate Hay Gains
+            let hayGained = state.clickPower;
+            state.hay += hayGained;
+            state.totalHay += hayGained;
+
+            // Trigger Floating FX
+            createFloatingText(e.clientX, e.clientY, `+${hayGained} Hay`, '#283618');
+
+            // Roll for Needle Find
+            let roll = Math.random();
+            if (roll < state.needleChance) {
+                state.needles++;
+                state.totalNeedles++;
+                // Finding a needle gives a massive coin bonus!
+                let bonusCoins = 50 + Math.floor(Math.random() * 50);
+                state.coins += bonusCoins;
+                state.totalCoins += bonusCoins;
+                
+                showToast(`🪡 Extraordinary! You found a NEEDLE! (+${bonusCoins} Coins Bonus)`);
+                createFloatingText(e.clientX, e.clientY - 30, `🪡 NEEDLE FOUND!`, '#b91c1c');
+                unlockAchievement('first_needle');
+            }
+
+            unlockAchievement('first_click');
             updateUI();
         }
-    }
 
-    // Upgrades
-    function buyPitchfork() {
-        if (coins >= pitchforkCost) {
-            coins -= pitchforkCost;
-            hayPerClick += 1;
-            pitchforkCost = Math.floor(pitchforkCost * 1.5);
-            updateUI();
-        }
-    }
-
-    function buyMagnet() {
-        if (coins >= magnetCost) {
-            coins -= magnetCost;
-            magnetLevel += 1;
-            magnetCost = Math.floor(magnetCost * 2);
-            spawnNeedle(); // Rescale current needle
-            updateUI();
-        }
-    }
-
-    function buyDetector() {
-        if (coins >= detectorCost) {
-            coins -= detectorCost;
-            metalDetectors += 1;
-            detectorCost = Math.floor(detectorCost * 2.2);
-            updateUI();
-        }
-    }
-
-    // Auto Detector Loop (Interval)
-    setInterval(() => {
-        if (metalDetectors > 0) {
-            // Chance to find needle automatically based on detector count
-            if (Math.random() < 0.1 * metalDetectors) {
-                foundNeedle();
+        // Farmer's Market Selling Actions
+        function sellHay(amount) {
+            if (state.hay >= amount) {
+                state.hay -= amount;
+                state.coins += amount;
+                state.totalCoins += amount;
+                unlockAchievement('first_sale');
+                updateUI();
+            } else {
+                showToast("You don't have enough hay to sell!");
             }
         }
-    }, 3000);
 
-    // Update UI elements & button states
-    function updateUI() {
-        hayCountEl.textContent = hay;
-        coinCountEl.textContent = coins;
-        needleCountEl.textContent = needlesFound;
+        function sellHalfHay() {
+            let amount = Math.floor(state.hay / 2);
+            if (amount > 0) {
+                sellHay(amount);
+            } else {
+                showToast("Not enough hay to sell half!");
+            }
+        }
 
-        document.getElementById('cost-pitchfork').textContent = pitchforkCost;
-        document.getElementById('cost-magnet').textContent = magnetCost;
-        document.getElementById('cost-detector').textContent = detectorCost;
+        function sellAllHay() {
+            if (state.hay > 0) {
+                sellHay(state.hay);
+            } else {
+                showToast("You have no hay to sell!");
+            }
+        }
 
-        sellBtn.disabled = hay === 0;
-        buyPitchforkBtn.disabled = coins < pitchforkCost;
-        buyMagnetBtn.disabled = coins < magnetCost;
-        buyDetectorBtn.disabled = coins < detectorCost;
-    }
+        // Buy Upgrade Function
+        function buyUpgrade(key) {
+            let upg = state.upgrades[key];
+            if (state.coins >= upg.cost) {
+                state.coins -= upg.cost;
+                upg.count++;
+                upg.cost = Math.floor(upg.baseCost * Math.pow(1.15, upg.count));
 
-    // Game Start
-    createHayVisuals();
-    updateUI();
-</script>
+                // Recalculate Active Stats
+                recalculateStats();
+                renderUpgrades();
+                updateUI();
+                showToast(`Purchased ${upg.name}!`);
+            } else {
+                showToast("Not enough coins!");
+            }
+        }
 
+        // Recalculate Multipliers and Idle Gains
+        function recalculateStats() {
+            state.clickPower = 1 + (state.upgrades.pitchfork.count * state.upgrades.pitchfork.power);
+            state.needleChance = 0.005 + 
+                (state.upgrades.gloves.count * state.upgrades.gloves.power) + 
+                (state.upgrades.magnet.count * state.upgrades.magnet.power);
+            
+            state.autoHayPerSec = (state.upgrades.helper.count * state.upgrades.helper.power) + 
+                                  (state.upgrades.baler.count * state.upgrades.baler.power);
+            
+            state.autoSellPerSec = (state.upgrades.trader.count * state.upgrades.trader.power);
+        }
+
+        // Game Loop (Idle Generation and Auto-Selling)
+        function gameLoop() {
+            // Add Auto Hay
+            if (state.autoHayPerSec > 0) {
+                state.hay += state.autoHayPerSec;
+                state.totalHay += state.autoHayPerSec;
+            }
+
+            // Auto Selling Logic
+            if (state.autoSellPerSec > 0 && state.hay > 0) {
+                let toSell = Math.min(state.hay, state.autoSellPerSec);
+                state.hay -= toSell;
+                state.coins += toSell;
+                state.totalCoins += toSell;
+            }
+
+            // Check Milestone Achievements
+            if (state.hay >= 500) unlockAchievement('hay_hoarder');
+            if (state.totalCoins >= 1000) unlockAchievement('rich_farmer');
+            if (state.totalNeedles >= 10) unlockAchievement('needle_collector');
+
+            updateUI();
+        }
+
+        /* ==========================================================================
+           UI & RENDERING FUNCTIONS
+           ========================================================================== */
+
+        function updateUI() {
+            document.getElementById('hay-count').innerText = Math.floor(state.hay).toLocaleString();
+            document.getElementById('coin-count').innerText = Math.floor(state.coins).toLocaleString();
+            document.getElementById('needle-count').innerText = state.needles.toLocaleString();
+
+            // Stats tab updates
+            document.getElementById('stat-clicks').innerText = state.totalClicks.toLocaleString();
+            document.getElementById('stat-total-hay').innerText = Math.floor(state.totalHay).toLocaleString();
+            document.getElementById('stat-total-coins').innerText = Math.floor(state.totalCoins).toLocaleString();
+            document.getElementById('stat-total-needles').innerText = state.totalNeedles.toLocaleString();
+            document.getElementById('stat-needle-chance').innerText = (state.needleChance * 100).toFixed(2) + "%";
+
+            // Update buttons state
+            document.getElementById('sell-one-btn').disabled = state.hay < 1;
+            document.getElementById('sell-half-btn').disabled = state.hay < 2;
+            document.getElementById('sell-all-btn').disabled = state.hay < 1;
+
+            // Dynamic upgrade button check
+            for (let key in state.upgrades) {
+                let btn = document.getElementById(`upg-btn-${key}`);
+                if (btn) {
+                    btn.disabled = state.coins < state.upgrades[key].cost;
+                }
+            }
+        }
+
+        function renderUpgrades() {
+            let container = document.getElementById('upgrades-list');
+            container.innerHTML = '';
+
+            for (let key in state.upgrades) {
+                let upg = state.upgrades[key];
+                let item = document.createElement('div');
+                item.className = 'upgrade-card';
+                item.innerHTML = `
+                    <div class="upgrade-details">
+                        <h4>${upg.name} <span style="font-size: 0.8rem; color:#606c38;">(Level ${upg.count})</span></h4>
+                        <p>${upg.desc}</p>
+                        <p class="cost-tag">Cost: ${upg.cost.toLocaleString()} Coins</p>
+                    </div>
+                    <button class="action-btn" id="upg-btn-${key}" onclick="buyUpgrade('${key}')">Buy Upgrade</button>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        function renderAchievements() {
+            let container = document.getElementById('achievements-list');
+            container.innerHTML = '';
+
+            for (let key in state.achievements) {
+                let ach = state.achievements[key];
+                let item = document.createElement('div');
+                item.className = `achievement-card ${ach.unlocked ? 'unlocked' : ''}`;
+                item.id = `ach-${key}`;
+                item.innerHTML = `
+                    <h5>${ach.unlocked ? '🏆' : '🔒'} ${ach.name}</h5>
+                    <p>${ach.desc}</p>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        function unlockAchievement(key) {
+            if (state.achievements[key] && !state.achievements[key].unlocked) {
+                state.achievements[key].unlocked = true;
+                renderAchievements();
+                showToast(`🏆 Achievement Unlocked: ${state.achievements[key].name}`);
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        function createFloatingText(x, y, text, color) {
+            let el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = text;
+            el.style.left = `${x - 20}px`;
+            el.style.top = `${y - 20}px`;
+            el.style.color = color;
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.remove();
+            }, 1000);
+        }
+
+        function showToast(msg) {
+            let area = document.getElementById('notification-area');
+            let toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            area.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        /* ==========================================================================
+           SAVE & LOAD SYSTEM (LOCALSTORAGE)
+           ========================================================================== */
+
+        function saveGame() {
+            localStorage.setItem('haystack_game_save', JSON.stringify(state));
+        }
+
+        function loadGame() {
+            let saved = localStorage.getItem('haystack_game_save');
+            if (saved) {
+                try {
+                    let loadedState = JSON.parse(saved);
+                    // Deep merge saved state into state object
+                    Object.assign(state, loadedState);
+                    recalculateStats();
+                } catch (e) {
+                    console.error("Failed to load save file", e);
+                }
+            }
+        }
+
+        function resetGame() {
+            if (confirm("Are you sure you want to reset your entire farm progress?")) {
+                localStorage.removeItem('haystack_game_save');
+                location.reload();
+            }
+        }
+
+        // Initialize game on window load
+        window.onload = init;
+    </script>
 </body>
 </html>
