@@ -3,27 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Haystack Tycoon: Third Person Searcher</title>
+    <title>Needle in a Haystack: Ultra 3D Simulator</title>
+    <!-- GENERATE DYNAMIC HAY FAVICON VIA CANVAS DATA URI -->
+    <script>
+        (function generateFavicon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Background Circle
+            ctx.fillStyle = '#2a9d8f';
+            ctx.beginPath();
+            ctx.arc(32, 32, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw Straw Hay Bundle
+            ctx.strokeStyle = '#e9c46a';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            for (let i = 0; i < 12; i++) {
+                let angle = (i / 12) * Math.PI * 2;
+                let x1 = 32 + Math.cos(angle) * 6;
+                let y1 = 32 + Math.sin(angle) * 6;
+                let x2 = 32 + Math.cos(angle + 0.3) * 22;
+                let y2 = 32 + Math.sin(angle + 0.3) * 22;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            // Draw Needle Shiny Highlight
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(18, 46);
+            ctx.lineTo(46, 18);
+            ctx.stroke();
+
+            // Needle Eye
+            ctx.fillStyle = '#d4d4d8';
+            ctx.beginPath();
+            ctx.arc(44, 20, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            const link = document.createElement('link');
+            link.rel = 'icon';
+            link.href = canvas.toDataURL('image/png');
+            document.head.appendChild(link);
+        })();
+    </script>
+
     <style>
         /* ==========================================================================
-           GLOBAL & UI STYLES
+           GLOBAL RESET & UI SYSTEM
            ========================================================================== */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #000;
+            background-color: #050811;
+            color: #fff;
         }
 
-        #canvas-container {
+        #render-canvas {
             width: 100%;
             height: 100%;
             position: absolute;
@@ -32,8 +84,8 @@
             z-index: 1;
         }
 
-        /* HUD & Overlay Elements */
-        #hud {
+        /* HUD Overlay Container */
+        #ui-layer {
             position: absolute;
             top: 0;
             left: 0;
@@ -47,251 +99,319 @@
             padding: 20px;
         }
 
-        .header-bar {
+        /* Top Header Bar */
+        .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(20, 20, 20, 0.6);
-            backdrop-filter: blur(10px);
-            padding: 15px 25px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            padding: 16px 28px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.6);
             pointer-events: auto;
         }
 
-        .header-bar h1 {
-            font-size: 1.4rem;
-            color: #f4a261;
+        .brand-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            background: linear-gradient(45deg, #f4a261, #e9c46a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .stats-container {
+        .stat-group {
             display: flex;
-            gap: 20px;
+            gap: 16px;
         }
 
-        .stat-badge {
+        .stat-card {
             background: rgba(0, 0, 0, 0.4);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 1rem;
-            font-weight: bold;
+            padding: 8px 18px;
+            border-radius: 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 8px;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .stat-badge span.value {
+        .stat-card .val {
             color: #e9c46a;
+            font-family: monospace;
+            font-size: 1.1rem;
         }
 
-        /* Controls Prompt Overlay */
-        .controls-hint {
+        /* Detection Distance Meter */
+        #detector-hud {
             position: absolute;
-            bottom: 20px;
+            top: 90px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: #fff;
-            padding: 10px 20px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 10px 24px;
             border-radius: 30px;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(239, 68, 68, 0.4);
             display: flex;
-            gap: 15px;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .key {
-            background: #f4a261;
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
+        #detector-hud.active {
+            opacity: 1;
         }
 
-        /* Floating Interactive Action Prompts */
-        .interactive-prompt {
+        .signal-bar-bg {
+            width: 140px;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .signal-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #22c55e);
+            transition: width 0.15s ease;
+        }
+
+        /* Bottom Inventory Tool Hotbar */
+        .hotbar-container {
+            align-self: center;
+            display: flex;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            padding: 10px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            pointer-events: auto;
+        }
+
+        .hotbar-slot {
+            width: 64px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .hotbar-slot:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-4px);
+        }
+
+        .hotbar-slot.active {
+            border-color: #f4a261;
+            background: rgba(244, 162, 97, 0.2);
+            box-shadow: 0 0 15px rgba(244, 162, 97, 0.4);
+        }
+
+        .hotbar-slot .key-bind {
             position: absolute;
-            top: 50%;
+            top: 4px;
+            left: 6px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #94a3b8;
+        }
+
+        .hotbar-slot .icon {
+            font-size: 1.6rem;
+        }
+
+        .hotbar-slot .label {
+            font-size: 0.65rem;
+            color: #cbd5e1;
+            margin-top: 2px;
+            font-weight: 600;
+        }
+
+        /* Interactive Context Prompt */
+        .context-prompt {
+            position: absolute;
+            bottom: 110px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(231, 111, 81, 0.9);
+            transform: translateX(-50%);
+            background: rgba(234, 88, 12, 0.9);
             color: white;
-            padding: 12px 24px;
+            padding: 12px 28px;
             border-radius: 30px;
-            font-weight: bold;
-            font-size: 1.2rem;
-            box-shadow: 0 0 20px rgba(231, 111, 81, 0.6);
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 0 24px rgba(234, 88, 12, 0.5);
             display: none;
-            animation: pulse 1.5s infinite;
+            animation: pulsePrompt 1.4s infinite;
         }
 
-        @keyframes pulse {
-            0% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.08); }
-            100% { transform: translate(-50%, -50%) scale(1); }
+        @keyframes pulsePrompt {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.06); }
+            100% { transform: translateX(-50%) scale(1); }
         }
 
-        /* Side Dashboard / Shop Drawer */
-        .shop-toggle-btn {
+        /* Market Drawer Button & Panel */
+        .market-btn {
             position: absolute;
             right: 20px;
             top: 100px;
             background: #2a9d8f;
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 12px 22px;
+            border-radius: 12px;
             border: none;
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 0.95rem;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: all 0.2s;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
         }
 
-        .shop-toggle-btn:hover {
-            background: #264653;
+        .market-btn:hover {
+            background: #21867a;
             transform: translateY(-2px);
         }
 
-        .shop-panel {
+        .drawer-panel {
             position: absolute;
-            right: -420px;
+            right: -440px;
             top: 0;
-            width: 400px;
+            width: 420px;
             height: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(15px);
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(20px);
             z-index: 20;
-            transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 25px;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 30px 24px;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            color: #fff;
             border-left: 1px solid rgba(255,255,255,0.1);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+            box-shadow: -15px 0 40px rgba(0,0,0,0.8);
         }
 
-        .shop-panel.open {
+        .drawer-panel.open {
             right: 0;
         }
 
-        .shop-header {
+        .drawer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 15px;
+            padding-bottom: 16px;
         }
 
-        .shop-header h2 {
+        .drawer-header h2 {
+            font-size: 1.3rem;
             color: #f4a261;
-            font-size: 1.4rem;
         }
 
-        .close-btn {
+        .close-drawer {
             background: transparent;
             border: none;
-            color: #aaa;
-            font-size: 1.5rem;
+            color: #94a3b8;
+            font-size: 1.8rem;
             cursor: pointer;
         }
 
-        .close-btn:hover { color: #fff; }
+        .close-drawer:hover { color: #fff; }
 
-        .shop-items-container {
+        .upgrades-list {
             flex: 1;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            padding-right: 5px;
+            gap: 14px;
+            padding-right: 6px;
         }
 
-        /* Scrollbar Styling */
-        .shop-items-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        .shop-items-container::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.2);
-            border-radius: 3px;
-        }
+        .upgrades-list::-webkit-scrollbar { width: 5px; }
+        .upgrades-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 
-        .upgrade-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        .upg-card {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             gap: 10px;
-            transition: background 0.2s;
         }
 
-        .upgrade-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .upgrade-info {
+        .upg-card-head {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .upgrade-info h3 {
-            font-size: 1rem;
+        .upg-card-head h4 {
             color: #e9c46a;
+            font-size: 1rem;
         }
 
-        .upgrade-info .level {
-            font-size: 0.8rem;
+        .upg-card-head .lvl {
             background: #2a9d8f;
-            padding: 2px 8px;
-            border-radius: 10px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
         }
 
-        .upgrade-desc {
+        .upg-desc {
             font-size: 0.85rem;
-            color: #ccc;
+            color: #94a3b8;
             line-height: 1.3;
         }
 
-        .buy-btn {
+        .btn-action {
             background: #e76f51;
             color: white;
             border: none;
-            padding: 10px;
-            border-radius: 6px;
-            font-weight: bold;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
-        .buy-btn:hover:not(:disabled) {
+        .btn-action:hover:not(:disabled) {
             background: #f4a261;
             color: #000;
         }
 
-        .buy-btn:disabled {
-            background: #444;
-            color: #888;
+        .btn-action:disabled {
+            background: #334155;
+            color: #64748b;
             cursor: not-allowed;
         }
 
-        /* Toast Notifications */
-        #notification-container {
+        /* Floating Notifications */
+        #toast-container {
             position: absolute;
             top: 90px;
             left: 20px;
@@ -302,245 +422,298 @@
             pointer-events: none;
         }
 
-        .toast-msg {
-            background: rgba(0, 0, 0, 0.85);
+        .toast-item {
+            background: rgba(15, 23, 42, 0.92);
             color: #fff;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 14px 22px;
+            border-radius: 10px;
             border-left: 4px solid #f4a261;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             font-size: 0.9rem;
-            animation: slideIn 0.3s forwards, fadeOut 0.5s 3.5s forwards;
+            animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards, toastOut 0.4s 3.6s forwards;
         }
 
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
+        @keyframes toastIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
 
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-
-        /* 3D World Floating Text Canvas Overlay */
-        .world-text {
+        /* Projected Screen World Text */
+        .world-text-float {
             position: absolute;
-            font-weight: bold;
-            font-size: 1.4rem;
+            font-weight: 900;
+            font-size: 1.3rem;
             pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            animation: floatUp3D 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+            animation: floatUpScreen 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
             z-index: 15;
         }
 
-        @keyframes floatUp3D {
+        @keyframes floatUpScreen {
             0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
+            100% { transform: translateY(-70px) scale(1.2); opacity: 0; }
         }
     </style>
 
-    <!-- Three.js Library Import -->
+    <!-- Include Three.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <!-- 3D RENDER CANVAS CONTAINER -->
-    <div id="canvas-container"></div>
+    <!-- THREE.JS WEBGL CANVAS -->
+    <div id="render-canvas"></div>
 
-    <!-- UI OVERLAY (HUD) -->
-    <div id="hud">
-        <div class="header-bar">
-            <h1>🌾 Haystack Tycoon 3D</h1>
-            <div class="stats-container">
-                <div class="stat-badge">🌾 Hay: <span id="ui-hay" class="value">0</span></div>
-                <div class="stat-badge">🪙 Coins: <span id="ui-coins" class="value">0</span></div>
-                <div class="stat-badge">🪡 Needles: <span id="ui-needles" class="value">0</span></div>
+    <!-- UI LAYER -->
+    <div id="ui-layer">
+        <!-- TOP HUD -->
+        <div class="hud-header">
+            <div class="brand-title">🌾 Haystack Tycoon 3D</div>
+            <div class="stat-group">
+                <div class="stat-card">🌾 Hay: <span id="val-hay" class="val">0</span></div>
+                <div class="stat-card">🪙 Coins: <span id="val-coins" class="val">0</span></div>
+                <div class="stat-card">🪡 Needles: <span id="val-needles" class="val">0</span></div>
             </div>
         </div>
 
-        <button class="shop-toggle-btn" onclick="toggleShop()">🛒 Open Market & Upgrades</button>
+        <!-- DETECTOR PROXIMITY HUD -->
+        <div id="detector-hud">
+            <span style="font-size: 1.1rem;">📡 Metal Detector Signal:</span>
+            <div class="signal-bar-bg">
+                <div class="signal-bar-fill" id="signal-bar"></div>
+            </div>
+        </div>
 
-        <div class="interactive-prompt" id="action-prompt">Press [E] or Space to Search Haystack</div>
+        <button class="market-btn" onclick="toggleDrawer()">🛒 Market & Upgrades</button>
 
-        <div class="controls-hint">
-            <div><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> Move</div>
-            <div><span class="key">E</span> or <span class="key">Space</span> Interact</div>
-            <div><span class="key">Mouse</span> Rotate Camera</div>
+        <div class="context-prompt" id="context-prompt">Press [E] or [Space] to Search Hay</div>
+
+        <!-- HOTBAR -->
+        <div class="hotbar-container">
+            <div class="hotbar-slot active" id="slot-1" onclick="selectSlot(1)">
+                <span class="key-bind">1</span>
+                <span class="icon">🧹</span>
+                <span class="label">Hands/Fork</span>
+            </div>
+            <div class="hotbar-slot" id="slot-2" onclick="selectSlot(2)">
+                <span class="key-bind">2</span>
+                <span class="icon">🧺</span>
+                <span class="label">Sifter</span>
+            </div>
+            <div class="hotbar-slot" id="slot-3" onclick="selectSlot(3)">
+                <span class="key-bind">3</span>
+                <span class="icon">📡</span>
+                <span class="label">Detector</span>
+            </div>
+            <div class="hotbar-slot" id="slot-4" onclick="selectSlot(4)">
+                <span class="key-bind">4</span>
+                <span class="icon">🧲</span>
+                <span class="label">Magnet</span>
+            </div>
         </div>
     </div>
 
-    <!-- NOTIFICATION TOAST CONTAINER -->
-    <div id="notification-container"></div>
+    <!-- TOAST NOTIFICATIONS CONTAINER -->
+    <div id="toast-container"></div>
 
-    <!-- SHOP / UPGRADES PANEL -->
-    <div class="shop-panel" id="shop-panel">
-        <div class="shop-header">
-            <h2>Farmer's Market & Upgrades</h2>
-            <button class="close-btn" onclick="toggleShop()">&times;</button>
+    <!-- DRAWER SHOP PANEL -->
+    <div class="drawer-panel" id="drawer-panel">
+        <div class="drawer-header">
+            <h2>Farmer's Market & Gear</h2>
+            <button class="close-drawer" onclick="toggleDrawer()">&times;</button>
         </div>
 
-        <!-- FARMER QUICK TRADE -->
-        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-            <h3 style="color:#2a9d8f; font-size:1rem; margin-bottom: 8px;">🧑‍🌾 Trade Hay for Coins</h3>
-            <p style="font-size:0.85rem; color:#aaa; margin-bottom:12px;">Rate: 1 Hay = 1 Coin</p>
-            <div style="display: flex; gap: 8px;">
-                <button class="buy-btn" style="flex: 1;" onclick="sellHay(1)">Sell 1</button>
-                <button class="buy-btn" style="flex: 1;" onclick="sellHay('half')">Sell 50%</button>
-                <button class="buy-btn" style="flex: 1; background:#2a9d8f;" onclick="sellHay('all')">Sell All</button>
+        <!-- QUICK SELL TRADE -->
+        <div style="background: rgba(255,255,255,0.04); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+            <h3 style="color:#2a9d8f; font-size:1.05rem; margin-bottom:6px;">🧑‍🌾 Sell Raw Hay</h3>
+            <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:12px;">Sell collected hay to the farmer. Exchange: 1 Hay = 1 Coin.</p>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-action" style="flex:1;" onclick="sellHay(1)">Sell 1</button>
+                <button class="btn-action" style="flex:1;" onclick="sellHay('half')">Sell 50%</button>
+                <button class="btn-action" style="flex:1; background:#2a9d8f;" onclick="sellHay('all')">Sell All</button>
             </div>
         </div>
 
         <h3 style="font-size: 1.1rem; color:#f4a261; margin-top: 10px;">Equipment Upgrades</h3>
-        <div class="shop-items-container" id="upgrades-list">
-            <!-- Dynamic Injection via JavaScript -->
+        <div class="upgrades-list" id="upgrades-list">
+            <!-- Dynamic Upgrades Javascript Injection -->
         </div>
     </div>
 
-    <!-- MAIN GAME ENGINE SCRIPT -->
+    <!-- MAIN GAME LOGIC SCRIPT -->
     <script>
         /* ==========================================================================
-           1. AUDIO ENGINE (PROCEDURAL WEB AUDIO SYNTHESIZER)
+           1. PROCEDURAL SOUND SYNTHESIZER ENGINE (WEB AUDIO API)
            ========================================================================== */
-        class SoundEngine {
+        class AudioSynth {
             constructor() {
-                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.ctx = null;
             }
 
-            // Play procedural sound for picking/searching hay
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Straw Rustle / Digging Noise FX
             playRustle() {
-                if (this.ctx.state === 'suspended') this.ctx.resume();
-                let bufferSize = this.ctx.sampleRate * 0.1; // 100ms
+                this.init();
+                let bufferSize = this.ctx.sampleRate * 0.12;
                 let buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                let output = buffer.getChannelData(0);
+                let data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1;
+                    data[i] = Math.random() * 2 - 1;
                 }
 
-                let whiteNoise = this.ctx.createBufferSource();
-                whiteNoise.buffer = buffer;
+                let noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
 
                 let filter = this.ctx.createBiquadFilter();
                 filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(800, this.ctx.currentTime);
-                filter.Q.setValueAtTime(3, this.ctx.currentTime);
+                filter.frequency.setValueAtTime(1000 + Math.random() * 400, this.ctx.currentTime);
+                filter.Q.setValueAtTime(4, this.ctx.currentTime);
 
                 let gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
 
-                whiteNoise.connect(filter);
+                noise.connect(filter);
                 filter.connect(gain);
                 gain.connect(this.ctx.destination);
 
-                whiteNoise.start();
+                noise.start();
             }
 
-            // Play sound effect when finding a rare needle
-            playNeedleFound() {
-                if (this.ctx.state === 'suspended') this.ctx.resume();
+            // Metal Detector Proximity Beep FX
+            playBeep(pitchRatio = 1.0) {
+                this.init();
                 let osc = this.ctx.createOscillator();
                 let gain = this.ctx.createGain();
 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
-                osc.frequency.exponentialRampToValueAtTime(1318.51, this.ctx.currentTime + 0.3); // E6
+                osc.frequency.setValueAtTime(600 * pitchRatio, this.ctx.currentTime);
 
-                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
 
                 osc.start();
-                osc.stop(this.ctx.currentTime + 0.5);
+                osc.stop(this.ctx.currentTime + 0.08);
             }
 
-            // Play cash register chime sound on sale
+            // Rare Needle Discovery Fanfare FX
+            playNeedleFound() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.25, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.3);
+                });
+            }
+
+            // Sale Coin Chime FX
             playCoin() {
-                if (this.ctx.state === 'suspended') this.ctx.resume();
-                let now = this.ctx.currentTime;
-                
-                let osc1 = this.ctx.createOscillator();
-                let osc2 = this.ctx.createOscillator();
+                this.init();
+                const now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
                 let gain = this.ctx.createGain();
 
-                osc1.type = 'triangle';
-                osc2.type = 'sine';
-
-                osc1.frequency.setValueAtTime(987.77, now); // B5
-                osc2.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6
 
                 gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
 
-                osc1.connect(gain);
-                osc2.connect(gain);
+                osc.connect(gain);
                 gain.connect(this.ctx.destination);
 
-                osc1.start(now);
-                osc1.stop(now + 0.35);
-                osc2.start(now + 0.08);
-                osc2.stop(now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.3);
             }
         }
 
-        const audio = new SoundEngine();
+        const audio = new AudioSynth();
 
         /* ==========================================================================
-           2. GAME DATA STATE & CONFIGURATION
+           2. GAME DATA STATE
            ========================================================================== */
         let state = {
             hay: 0,
             coins: 0,
             needles: 0,
-            clickPower: 1,
-            needleChance: 0.01, // 1% Base Chance
-            autoHayPerSec: 0,
-            autoSellPerSec: 0,
+            activeSlot: 1, // 1: Hands/Fork, 2: Sifter, 3: Detector, 4: Magnet
+            searchPower: 1,
+            autoHaySec: 0,
+            autoSellSec: 0,
+            needleSearchRadius: 1.5,
             upgrades: {
-                pitchfork: { count: 0, cost: 15, baseCost: 15, power: 1, name: "Iron Pitchfork", desc: "+1 Hay collected per search interaction." },
-                detector: { count: 0, cost: 40, baseCost: 40, power: 0.01, name: "Metal Detector", desc: "Increases needle detection chance by +1%." },
-                helper: { count: 0, cost: 100, baseCost: 100, power: 2, name: "Farm Hand Helper", desc: "Passively gathers 2 Hay every second." },
-                magnet: { count: 0, cost: 300, baseCost: 300, power: 0.025, name: "Super Magnet", desc: "Greatly increases needle discovery chance." },
-                trader: { count: 0, cost: 500, baseCost: 500, power: 5, name: "Merchant Contract", desc: "Automatically sells up to 5 Hay/sec." },
-                baler: { count: 0, cost: 1500, baseCost: 1500, power: 20, name: "Steam Baler", desc: "Passively gathers 20 Hay every second." }
+                pitchfork: { count: 0, cost: 20, baseCost: 20, power: 1, name: "Steel Pitchfork", desc: "+1 Hay per digging action." },
+                sifter: { count: 0, cost: 50, baseCost: 50, power: 0.5, name: "Mesh Sifter Basket", desc: "Expands physical needle search reach radius." },
+                detector: { count: 0, cost: 120, baseCost: 120, power: 1, name: "Pulse Detector", desc: "Unlocks real-time proximity signal for hidden needle." },
+                magnet: { count: 0, cost: 350, baseCost: 350, power: 1, name: "Industrial Magnet", desc: "Pulls hidden needles directly towards player." },
+                helper: { count: 0, cost: 200, baseCost: 200, power: 2, name: "Automated Farmhand", desc: "Passively gathers 2 Hay every second." },
+                trader: { count: 0, cost: 600, baseCost: 600, power: 5, name: "Contract Merchant", desc: "Automatically sells up to 5 Hay per second." }
             }
         };
 
         /* ==========================================================================
-           3. THREE.JS 3D ENGINE & SCENE SETUP
+           3. THREE.JS 3D ENGINE, REALISTIC STRAW INSTANCING & SCENE
            ========================================================================== */
         let scene, camera, renderer;
-        let playerGroup, playerMesh, pitchforkMesh;
-        let haystackMesh, farmerMesh, shopAreaMesh;
-        let particlesSystem;
+        let playerGroup, playerBody, pitchforkTool;
+        let haystackGroup, strawInstancedMesh;
+        let hiddenNeedleMesh;
+        let farmerNPCGroup;
         let clock = new THREE.Clock();
 
-        // Control Inputs State
-        const keys = { w: false, a: false, s: false, d: false, interact: false };
-        let playerPos = new THREE.Vector3(0, 0, 5);
-        let playerVelocity = new THREE.Vector3();
-        let playerRotation = 0;
+        // 3D Straw Haystack Parameters
+        const STRAW_COUNT = 3500;
+        const HAYSTACK_CENTER = new THREE.Vector3(0, 0, 0);
+        const HAYSTACK_RADIUS = 7.0;
+        const HAYSTACK_HEIGHT = 4.5;
 
-        // Interactive Locations Coordinates
+        // Hidden Needle 3D Physics Location (Hard Random Position within Haystack Volume)
+        let needlePosition = new THREE.Vector3();
+
+        // Interactive Locations
         const LOCATIONS = {
-            HAYSTACK: new THREE.Vector3(0, 0, 0),
-            FARMER: new THREE.Vector3(12, 0, -8)
+            FARMER: new THREE.Vector3(18, 0, -12)
         };
 
+        // Keyboard Movement Controls State
+        const keys = { w: false, a: false, s: false, d: false, interact: false };
+        let playerPos = new THREE.Vector3(0, 0, 12);
+        let playerVelocity = new THREE.Vector3();
+
         function init3D() {
-            const container = document.getElementById('canvas-container');
+            const container = document.getElementById('render-canvas');
 
             // Scene Setup
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); // Sky blue
-            scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+            scene.background = new THREE.Color(0x0a0f1d);
+            scene.fog = new THREE.FogExp2(0x0a0f1d, 0.018);
 
             // Camera Setup
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-            // Renderer Setup
+            // WebGL Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -548,37 +721,42 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
 
-            // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambientLight);
+            // Lighting System
+            const ambient = new THREE.AmbientLight(0xfff0dd, 0.5);
+            scene.add(ambient);
 
-            const sunLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
-            sunLight.position.set(40, 60, 20);
-            sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 150;
-            const d = 30;
-            sunLight.shadow.camera.left = -d;
-            sunLight.shadow.camera.right = d;
-            sunLight.shadow.camera.top = d;
-            sunLight.shadow.camera.bottom = -d;
-            scene.add(sunLight);
+            const moonLight = new THREE.DirectionalLight(0xe0f2fe, 0.8);
+            moonLight.position.set(30, 50, 20);
+            moonLight.castShadow = true;
+            moonLight.shadow.mapSize.width = 2048;
+            moonLight.shadow.mapSize.height = 2048;
+            moonLight.shadow.camera.near = 0.5;
+            moonLight.shadow.camera.far = 120;
+            const d = 35;
+            moonLight.shadow.camera.left = -d;
+            moonLight.shadow.camera.right = d;
+            moonLight.shadow.camera.top = d;
+            moonLight.shadow.camera.bottom = -d;
+            scene.add(moonLight);
 
-            // Environment Creation
-            buildEnvironment();
-            buildPlayer();
-            buildHaystack();
+            // Warm Lantern Spot Light above Haystack
+            const lanternLight = new THREE.PointLight(0xf59e0b, 1.5, 25);
+            lanternLight.position.set(0, 8, 0);
+            scene.add(lanternLight);
+
+            // Build World Environments
+            buildTerrain();
+            buildVolumetricHaystack();
+            spawnRandomHiddenNeedle();
+            buildPlayerCharacter();
             buildFarmerNPC();
-            buildParticles();
 
             // Event Listeners
             window.addEventListener('resize', onWindowResize);
             window.addEventListener('keydown', (e) => handleKey(e, true));
             window.addEventListener('keyup', (e) => handleKey(e, false));
 
-            // Initial UI Updates
+            // Initial UI Setup
             renderUpgradesUI();
             updateUI();
 
@@ -587,285 +765,308 @@
         }
 
         /* ==========================================================================
-           4. PROCEDURAL 3D MESH BUILDERS
+           4. PROCEDURAL REALISTIC 3D MESH GENERATORS
            ========================================================================== */
 
-        // Build Terrain, Grass, Fences, and Farm Atmosphere
-        function buildEnvironment() {
-            // Ground Plane
-            const groundGeo = new THREE.PlaneGeometry(200, 200);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x557a2b, roughness: 0.9 });
+        function buildTerrain() {
+            // Ground Mesh
+            const groundGeo = new THREE.PlaneGeometry(160, 160, 32, 32);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1c2d15, roughness: 0.95 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Dirt Pathway to Farmer
-            const pathGeo = new THREE.PlaneGeometry(4, 25);
-            const pathMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 1.0 });
+            // Dirt Pathway
+            const pathGeo = new THREE.PlaneGeometry(6, 30);
+            const pathMat = new THREE.MeshStandardMaterial({ color: 0x4a321a, roughness: 1.0 });
             const path = new THREE.Mesh(pathGeo, pathMat);
             path.rotation.x = -Math.PI / 2;
-            path.rotation.z = Math.PI / 4;
-            path.position.set(6, 0.01, -4);
+            path.rotation.z = Math.PI / 3;
+            path.position.set(9, 0.01, -6);
             path.receiveShadow = true;
             scene.add(path);
 
-            // Decorative Trees around the Farm
-            for (let i = 0; i < 30; i++) {
-                let x = (Math.random() - 0.5) * 150;
-                let z = (Math.random() - 0.5) * 150;
-                if (Math.hypot(x, z) > 20) {
-                    createTree(x, z);
-                }
+            // Surroundings Fences & Farm Deco
+            for (let i = 0; i < 20; i++) {
+                let angle = (i / 20) * Math.PI * 2;
+                let r = 28;
+                let x = Math.cos(angle) * r;
+                let z = Math.sin(angle) * r;
+
+                const postGeo = new THREE.BoxGeometry(0.4, 2.2, 0.4);
+                const postMat = new THREE.MeshStandardMaterial({ color: 0x3f2314 });
+                const post = new THREE.Mesh(postGeo, postMat);
+                post.position.set(x, 1.1, z);
+                post.castShadow = true;
+                scene.add(post);
+            }
+        }
+
+        // Generate Volumetric 3D Haystack out of 3,500 Instanced Straw Blades
+        function buildVolumetricHaystack() {
+            haystackGroup = new THREE.Group();
+
+            // Inner Dark Core Dome Mesh
+            const domeGeo = new THREE.SphereGeometry(HAYSTACK_RADIUS * 0.85, 16, 12);
+            domeGeo.scale(1.0, HAYSTACK_HEIGHT / HAYSTACK_RADIUS, 1.0);
+            const domeMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 1.0 });
+            const domeCore = new THREE.Mesh(domeGeo, domeMat);
+            domeCore.position.y = 0.2;
+            domeCore.castShadow = true;
+            domeCore.receiveShadow = true;
+            haystackGroup.add(domeCore);
+
+            // Single Straw Blade Geometry (Thin tapered curved strip)
+            const strawGeo = new THREE.ConeGeometry(0.04, 1.2, 4);
+
+            // Custom Straw Color Variations (Golden, Dried Yellow, Brownish)
+            const strawMat = new THREE.MeshStandardMaterial({
+                color: 0xeab308,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+
+            strawInstancedMesh = new THREE.InstancedMesh(strawGeo, strawMat, STRAW_COUNT);
+            strawInstancedMesh.castShadow = true;
+            strawInstancedMesh.receiveShadow = true;
+
+            const matrix = new THREE.Matrix4();
+            const dummy = new THREE.Object3D();
+
+            for (let i = 0; i < STRAW_COUNT; i++) {
+                // Random position within haystack volumetric mound
+                let u = Math.random();
+                let v = Math.random();
+                let theta = u * 2.0 * Math.PI;
+                let phi = Math.acos(2.0 * v - 1.0);
+                
+                let r = Math.cbrt(Math.random()) * HAYSTACK_RADIUS;
+                let x = r * Math.sin(phi) * Math.cos(theta);
+                let z = r * Math.sin(phi) * Math.sin(theta);
+                let y = Math.abs(r * Math.cos(phi)) * (HAYSTACK_HEIGHT / HAYSTACK_RADIUS);
+
+                dummy.position.set(x, y, z);
+
+                // Tangent/Jittered Tilting Rotation
+                dummy.rotation.x = (Math.random() - 0.5) * Math.PI;
+                dummy.rotation.y = Math.random() * Math.PI * 2;
+                dummy.rotation.z = (Math.random() - 0.5) * Math.PI;
+
+                let scaleScale = 0.7 + Math.random() * 0.6;
+                dummy.scale.set(scaleScale, scaleScale, scaleScale);
+
+                dummy.updateMatrix();
+                strawInstancedMesh.setMatrixAt(i, dummy.matrix);
             }
 
-            // Simple Farm Fence
-            for (let x = -25; x <= 25; x += 10) {
-                createFencePost(x, -25);
-                createFencePost(x, 25);
-            }
+            strawInstancedMesh.instanceMatrix.needsUpdate = true;
+            haystackGroup.add(strawInstancedMesh);
+
+            haystackGroup.position.copy(HAYSTACK_CENTER);
+            scene.add(haystackGroup);
         }
 
-        function createTree(x, z) {
-            const treeGroup = new THREE.Group();
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 4, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e12 });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 2;
-            trunk.castShadow = true;
-            treeGroup.add(trunk);
+        // Spawn Hidden Metallic Needle inside Haystack Volume
+        function spawnRandomHiddenNeedle() {
+            // Remove existing if present
+            if (hiddenNeedleMesh) scene.remove(hiddenNeedleMesh);
 
-            const leavesGeo = new THREE.ConeGeometry(2.5, 6, 8);
-            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.8 });
-            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-            leaves.position.y = 5;
-            leaves.castShadow = true;
-            treeGroup.add(leaves);
+            // Random Coordinate deep inside Haystack Mound
+            let r = (0.2 + Math.random() * 0.7) * HAYSTACK_RADIUS;
+            let angle = Math.random() * Math.PI * 2;
+            let x = Math.cos(angle) * r;
+            let z = Math.sin(angle) * r;
+            let y = 0.3 + Math.random() * (HAYSTACK_HEIGHT * 0.6);
 
-            treeGroup.position.set(x, 0, z);
-            scene.add(treeGroup);
+            needlePosition.set(x, y, z);
+
+            // Realistic Shiny Metallic Needle Mesh
+            const needleGroup = new THREE.Group();
+            const bodyGeo = new THREE.CylinderGeometry(0.02, 0.04, 1.4, 12);
+            const needleMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 0.95,
+                roughness: 0.1,
+                emissive: 0x38bdf8,
+                emissiveIntensity: 0.2
+            });
+            const needleBody = new THREE.Mesh(bodyGeo, needleMat);
+            needleGroup.add(needleBody);
+
+            // Eye Hole
+            const eyeGeo = new THREE.TorusGeometry(0.05, 0.015, 8, 16);
+            const eyeMesh = new THREE.Mesh(eyeGeo, needleMat);
+            eyeMesh.position.y = 0.65;
+            needleGroup.add(eyeMesh);
+
+            needleGroup.position.copy(needlePosition);
+            needleGroup.rotation.z = Math.PI / 4;
+            needleGroup.rotation.x = Math.PI / 6;
+
+            hiddenNeedleMesh = needleGroup;
+            // Needle is hidden visually until discovered!
+            hiddenNeedleMesh.visible = false;
+            scene.add(hiddenNeedleMesh);
         }
 
-        function createFencePost(x, z) {
-            const postGeo = new THREE.BoxGeometry(0.4, 2, 0.4);
-            const postMat = new THREE.MeshStandardMaterial({ color: 0x6e4723 });
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(x, 1, z);
-            post.castShadow = true;
-            scene.add(post);
-        }
-
-        // Build 3D Character Mesh (Stylized Stylized Farmer)
-        function buildPlayer() {
+        // Build 3D Character Mesh
+        function buildPlayerCharacter() {
             playerGroup = new THREE.Group();
 
-            // Body
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.4, 1.4, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a9d8f }); // Teal Shirt
-            playerMesh = new THREE.Mesh(bodyGeo, bodyMat);
-            playerMesh.position.y = 1.1;
-            playerMesh.castShadow = true;
-            playerGroup.add(playerMesh);
+            // Torso
+            const torsoGeo = new THREE.CylinderGeometry(0.45, 0.4, 1.3, 8);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+            playerBody = new THREE.Mesh(torsoGeo, torsoMat);
+            playerBody.position.y = 1.0;
+            playerBody.castShadow = true;
+            playerGroup.add(playerBody);
 
             // Head
-            const headGeo = new THREE.SphereGeometry(0.4, 16, 16);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+            const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfde047 });
             const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 2.0;
+            head.position.y = 1.9;
             head.castShadow = true;
             playerGroup.add(head);
 
-            // Straw Hat
-            const hatBrimGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.05, 16);
-            const hatMat = new THREE.MeshStandardMaterial({ color: 0xe9c46a });
-            const hatBrim = new THREE.Mesh(hatBrimGeo, hatMat);
-            hatBrim.position.y = 2.3;
-            playerGroup.add(hatBrim);
-
-            const hatTopGeo = new THREE.CylinderGeometry(0.45, 0.5, 0.4, 16);
-            const hatTop = new THREE.Mesh(hatTopGeo, hatMat);
-            hatTop.position.y = 2.5;
-            playerGroup.add(hatTop);
-
-            // Pitchfork Accessory attached to player
+            // Pitchfork Tool Accessory
             const forkGroup = new THREE.Group();
-            const poleGeo = new THREE.CylinderGeometry(0.04, 0.04, 2.2);
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x5c3d11 });
-            const pole = new THREE.Mesh(poleGeo, poleMat);
-            forkGroup.add(pole);
+            const shaftGeo = new THREE.CylinderGeometry(0.03, 0.03, 2.0);
+            const shaftMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
+            const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+            forkGroup.add(shaft);
 
-            const prongsGeo = new THREE.BoxGeometry(0.4, 0.3, 0.05);
-            const prongsMat = new THREE.MeshStandardMaterial({ color: 0xaaa, metalness: 0.8 });
-            const prongs = new THREE.Mesh(prongsGeo, prongsMat);
-            prongs.position.y = 1.1;
-            forkGroup.add(prongs);
+            const headProngsGeo = new THREE.BoxGeometry(0.35, 0.25, 0.04);
+            const prongsMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
+            const headProngs = new THREE.Mesh(headProngsGeo, prongsMat);
+            headProngs.position.y = 1.0;
+            forkGroup.add(headProngs);
 
-            forkGroup.position.set(0.5, 1.2, 0.2);
+            forkGroup.position.set(0.5, 1.1, 0.2);
             forkGroup.rotation.x = Math.PI / 6;
-            pitchforkMesh = forkGroup;
-            playerGroup.add(pitchforkMesh);
+            pitchforkTool = forkGroup;
+            playerGroup.add(pitchforkTool);
 
             playerGroup.position.copy(playerPos);
             scene.add(playerGroup);
         }
 
-        // Build Main Interactive 3D Haystack Giant Pile
-        function buildHaystack() {
-            const stackGroup = new THREE.Group();
-
-            // Large Central Mound
-            const mainGeo = new THREE.SphereGeometry(3.5, 16, 12);
-            mainGeo.scale(1.2, 0.7, 1.2);
-            const hayMat = new THREE.MeshStandardMaterial({ color: 0xdda15e, roughness: 1.0 });
-            const mainPile = new THREE.Mesh(mainGeo, hayMat);
-            mainPile.position.y = 1.2;
-            mainPile.castShadow = true;
-            mainPile.receiveShadow = true;
-            stackGroup.add(mainPile);
-
-            // Extra Detail Bales around base
-            for (let i = 0; i < 8; i++) {
-                let angle = (i / 8) * Math.PI * 2;
-                let r = 3.2;
-                const detailGeo = new THREE.SphereGeometry(1.2, 8, 8);
-                const detailMesh = new THREE.Mesh(detailGeo, hayMat);
-                detailMesh.position.set(Math.cos(angle) * r, 0.6, Math.sin(angle) * r);
-                detailMesh.castShadow = true;
-                stackGroup.add(detailMesh);
-            }
-
-            // Floating Needle Graphic Indicator inside Haystack
-            const needleGeo = new THREE.CylinderGeometry(0.03, 0.08, 1.8);
-            const needleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, roughness: 0.1 });
-            const needleVisual = new THREE.Mesh(needleGeo, needleMat);
-            needleVisual.position.set(0, 3.2, 0);
-            needleVisual.rotation.z = Math.PI / 4;
-            needleVisual.name = "glowingNeedle";
-            stackGroup.add(needleVisual);
-
-            stackGroup.position.copy(LOCATIONS.HAYSTACK);
-            haystackMesh = stackGroup;
-            scene.add(haystackMesh);
-        }
-
-        // Build Farmer NPC Trade Station
+        // Build Farmer Trader NPC
         function buildFarmerNPC() {
-            const farmerGroup = new THREE.Group();
+            farmerNPCGroup = new THREE.Group();
 
-            // Farmer Body
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.5);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xae2012 }); // Red Plaid Shirt
+            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.4);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706 });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.1;
+            body.position.y = 1.0;
             body.castShadow = true;
-            farmerGroup.add(body);
+            farmerNPCGroup.add(body);
 
-            // Head
-            const headGeo = new THREE.SphereGeometry(0.4);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+            const headGeo = new THREE.SphereGeometry(0.38);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfde047 });
             const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 2.1;
-            farmerGroup.add(head);
+            head.position.y = 1.9;
+            farmerNPCGroup.add(head);
 
-            // Wooden Trade Counter Stalls
-            const counterGeo = new THREE.BoxGeometry(3, 1.2, 1.5);
-            const counterMat = new THREE.MeshStandardMaterial({ color: 0x6e4723 });
-            const counter = new THREE.Mesh(counterGeo, counterMat);
-            counter.position.set(0, 0.6, 1);
-            counter.castShadow = true;
-            farmerGroup.add(counter);
+            // Trading Table
+            const tableGeo = new THREE.BoxGeometry(3.5, 1.1, 1.6);
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
+            const table = new THREE.Mesh(tableGeo, tableMat);
+            table.position.set(0, 0.55, 1.2);
+            table.castShadow = true;
+            farmerNPCGroup.add(table);
 
-            farmerGroup.position.copy(LOCATIONS.FARMER);
-            farmerMesh = farmerGroup;
-            scene.add(farmerMesh);
-        }
-
-        // Particle System for Hay Search FX
-        function buildParticles() {
-            const particleCount = 60;
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(particleCount * 3);
-
-            for (let i = 0; i < particleCount * 3; i++) {
-                positions[i] = 0;
-            }
-
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.PointsMaterial({ color: 0xf4a261, size: 0.25, transparent: true, opacity: 0 });
-            particlesSystem = new THREE.Points(geometry, material);
-            scene.add(particlesSystem);
-        }
-
-        function triggerParticleBurst(origin) {
-            const positions = particlesSystem.geometry.attributes.position.array;
-            for (let i = 0; i < positions.length; i += 3) {
-                positions[i] = origin.x + (Math.random() - 0.5) * 2;
-                positions[i + 1] = origin.y + Math.random() * 2;
-                positions[i + 2] = origin.z + (Math.random() - 0.5) * 2;
-            }
-            particlesSystem.geometry.attributes.position.needsUpdate = true;
-            particlesSystem.material.opacity = 1.0;
+            farmerNPCGroup.position.copy(LOCATIONS.FARMER);
+            scene.add(farmerNPCGroup);
         }
 
         /* ==========================================================================
-           5. GAME CONTROLS & INTERACTION ENGINE
+           5. CONTROLS, PHYSICAL SEARCH & DETECTOR SIGNAL
            ========================================================================== */
 
         function handleKey(e, isDown) {
-            const key = e.key.toLowerCase();
-            if (key === 'w') keys.w = isDown;
-            if (key === 'a') keys.a = isDown;
-            if (key === 's') keys.s = isDown;
-            if (key === 'd') keys.d = isDown;
-            if ((key === 'e' || key === ' ') && isDown) {
-                performContextInteraction();
+            const k = e.key.toLowerCase();
+            if (k === 'w') keys.w = isDown;
+            if (k === 'a') keys.a = isDown;
+            if (k === 's') keys.s = isDown;
+            if (k === 'd') keys.d = isDown;
+
+            if (k === '1') selectSlot(1);
+            if (k === '2') selectSlot(2);
+            if (k === '3') selectSlot(3);
+            if (k === '4') selectSlot(4);
+
+            if ((k === 'e' || k === ' ') && isDown) {
+                performContextAction();
             }
         }
 
-        function performContextInteraction() {
-            let distHaystack = playerPos.distanceTo(LOCATIONS.HAYSTACK);
-            let distFarmer = playerPos.distanceTo(LOCATIONS.FARMER);
+        function selectSlot(slotNum) {
+            state.activeSlot = slotNum;
+            document.querySelectorAll('.hotbar-slot').forEach(el => el.classList.remove('active'));
+            document.getElementById(`slot-${slotNum}`).classList.add('active');
 
-            if (distHaystack < 5.0) {
-                searchHaystack3D();
-            } else if (distFarmer < 4.0) {
-                openShop();
+            // Toggle Metal Detector HUD Visibility
+            const detHud = document.getElementById('detector-hud');
+            if (slotNum === 3) detHud.classList.add('active');
+            else detHud.classList.remove('active');
+        }
+
+        function performContextAction() {
+            let distToHay = playerPos.distanceTo(HAYSTACK_CENTER);
+            let distToFarmer = playerPos.distanceTo(LOCATIONS.FARMER);
+
+            if (distToHay <= HAYSTACK_RADIUS + 1.5) {
+                digHaystackAction();
+            } else if (distToFarmer <= 4.0) {
+                toggleDrawer();
             }
         }
 
-        // Core Hay Searching Mechanic
-        function searchHaystack3D() {
-            // Animate Pitchfork Swing
-            pitchforkMesh.rotation.x = Math.PI / 2;
-            setTimeout(() => pitchforkMesh.rotation.x = Math.PI / 6, 200);
+        // Dig/Search Haystack Interaction
+        function digHaystackAction() {
+            // Animate Pitchfork Dig Swing
+            pitchforkTool.rotation.x = Math.PI / 1.8;
+            setTimeout(() => pitchforkTool.rotation.x = Math.PI / 6, 220);
 
-            // Play Procedural Rustle Sound Effect
             audio.playRustle();
 
-            // Trigger Particle Burst
-            triggerParticleBurst(LOCATIONS.HAYSTACK);
+            let hayGained = state.searchPower;
+            state.hay += hayGained;
 
-            // Calculate Hay Earned
-            let gainedHay = state.clickPower;
-            state.hay += gainedHay;
+            spawnScreenFloatText(`+${hayGained} Hay 🌾`, playerPos, "#f4a261");
 
-            spawn3DFloatingText(`+${gainedHay} Hay`, LOCATIONS.HAYSTACK, "#f4a261");
+            // Check if player physically found needle based on location & search reach radius
+            let distToNeedle = playerPos.distanceTo(needlePosition);
+            let effectiveRadius = state.needleSearchRadius;
 
-            // Roll for Needle Find
-            if (Math.random() < state.needleChance) {
+            // Slot Bonuses
+            if (state.activeSlot === 2) effectiveRadius *= 1.8; // Sifter bonus
+            if (state.activeSlot === 4) effectiveRadius *= 2.5; // Magnet bonus
+
+            if (distToNeedle <= effectiveRadius) {
+                // NEEDLE FOUND!
                 state.needles++;
-                let bonusCoins = 100 + Math.floor(Math.random() * 100);
-                state.coins += bonusCoins;
+                let coinBonus = 250 + Math.floor(Math.random() * 250);
+                state.coins += coinBonus;
 
                 audio.playNeedleFound();
-                spawn3DFloatingText(`🪡 NEEDLE FOUND! (+${bonusCoins} Coins)`, LOCATIONS.HAYSTACK, "#e76f51");
-                showToast(`🪡 Incredible! You pulled a Needle out of the Haystack! Bonus +${bonusCoins} Coins!`);
+
+                // Make Needle Visible & Flash
+                hiddenNeedleMesh.visible = true;
+                spawnScreenFloatText(`🪡 NEEDLE DISCOVERED! (+${coinBonus} Coins)`, needlePosition, "#ef4444");
+                showToast(`🪡 AMAZING! You unearthed the needle deep inside the haystack! (+${coinBonus} Coins)`);
+
+                // Respawn Needle in a new hard location after 2 seconds
+                setTimeout(() => {
+                    spawnRandomHiddenNeedle();
+                }, 2000);
             }
 
             updateUI();
         }
 
-        // Sell Hay to Farmer NPC
         function sellHay(amount) {
             let toSell = 0;
             if (amount === 'all') toSell = state.hay;
@@ -876,19 +1077,20 @@
                 state.hay -= toSell;
                 state.coins += toSell;
                 audio.playCoin();
-                spawn3DFloatingText(`+${toSell} Coins 🪙`, LOCATIONS.FARMER, "#2a9d8f");
-                showToast(`Sold ${toSell} Hay for ${toSell} Coins!`);
+                spawnScreenFloatText(`+${toSell} Coins 🪙`, LOCATIONS.FARMER, "#2a9d8f");
+                showToast(`Sold ${toSell} Hay to the farmer for ${toSell} Coins!`);
                 updateUI();
             } else {
-                showToast("No Hay available to sell!");
+                showToast("You don't have any Hay to sell!");
             }
         }
 
         /* ==========================================================================
-           6. MAIN ANIMATION & TICK LOOP
+           6. TICK & RENDERING LOOP
            ========================================================================== */
 
-        let lastPassiveTick = 0;
+        let lastBeepTime = 0;
+        let lastPassiveSec = 0;
 
         function animate() {
             requestAnimationFrame(animate);
@@ -896,40 +1098,37 @@
             let delta = clock.getDelta();
             let elapsed = clock.getElapsedTime();
 
-            // Handle Player Physics Movement
-            updatePlayerMovement(delta);
+            // Player Physics Movement
+            updatePlayerPhysics(delta);
 
-            // Third-Person Camera Tracking
+            // Third-Person Camera Smooth Follow
             camera.position.x = playerGroup.position.x;
-            camera.position.y = playerGroup.position.y + 8;
-            camera.position.z = playerGroup.position.z + 12;
-            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.5, playerGroup.position.z);
+            camera.position.y = playerGroup.position.y + 9;
+            camera.position.z = playerGroup.position.z + 13;
+            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
 
-            // Rotate Floating Needle Visual
-            const needleVisual = haystackMesh.getObjectByName("glowingNeedle");
-            if (needleVisual) {
-                needleVisual.rotation.y = elapsed * 2;
-                needleVisual.position.y = 3.2 + Math.sin(elapsed * 3) * 0.2;
+            // Volumetric Straw Physical Interaction displacement (When player walks inside haystack)
+            let distToHay = playerPos.distanceTo(HAYSTACK_CENTER);
+            if (distToHay < HAYSTACK_RADIUS) {
+                strawInstancedMesh.rotation.y = Math.sin(elapsed * 4) * 0.02;
             }
 
-            // Fade Out Particle Effects
-            if (particlesSystem && particlesSystem.material.opacity > 0) {
-                particlesSystem.material.opacity -= delta * 2;
-            }
+            // Proximity Detector Signal Logic
+            updateMetalDetectorSignal(elapsed);
 
-            // Proximity HUD Interaction Check
-            checkProximityPrompts();
+            // Context Interaction Prompts
+            updateContextPrompts();
 
-            // Idle Passive Tycoon Income Loop (Runs every second)
-            if (elapsed - lastPassiveTick >= 1.0) {
+            // Idle Tycoon Passive Generation (1 Sec Interval)
+            if (elapsed - lastPassiveSec >= 1.0) {
                 passiveIncomeTick();
-                lastPassiveTick = elapsed;
+                lastPassiveSec = elapsed;
             }
 
             renderer.render(scene, camera);
         }
 
-        function updatePlayerMovement(delta) {
+        function updatePlayerPhysics(delta) {
             let moveDir = new THREE.Vector3();
 
             if (keys.w) moveDir.z -= 1;
@@ -939,60 +1138,77 @@
 
             if (moveDir.length() > 0) {
                 moveDir.normalize();
-                let speed = 8.0;
+                let moveSpeed = 9.0;
 
-                playerPos.x += moveDir.x * speed * delta;
-                playerPos.z += moveDir.z * speed * delta;
+                // Slow down movement when walking through deep hay mound
+                if (playerPos.distanceTo(HAYSTACK_CENTER) < HAYSTACK_RADIUS) {
+                    moveSpeed = 4.5;
+                }
 
-                // Player Rotation facing movement direction
-                let targetRotation = Math.atan2(moveDir.x, moveDir.z);
-                playerGroup.rotation.y = targetRotation;
+                playerPos.x += moveDir.x * moveSpeed * delta;
+                playerPos.z += moveDir.z * moveSpeed * delta;
 
-                // Walking Bobbing Animation
-                playerMesh.position.y = 1.1 + Math.sin(clock.getElapsedTime() * 12) * 0.1;
+                // Character Rotation
+                playerGroup.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+
+                // Walking Animation Bobbing
+                playerBody.position.y = 1.0 + Math.sin(clock.getElapsedTime() * 14) * 0.08;
             } else {
-                playerMesh.position.y = 1.1;
+                playerBody.position.y = 1.0;
             }
 
             playerGroup.position.copy(playerPos);
         }
 
-        // Check if player is near interactive structures
-        function checkProximityPrompts() {
-            const prompt = document.getElementById('action-prompt');
-            let distHaystack = playerPos.distanceTo(LOCATIONS.HAYSTACK);
+        function updateMetalDetectorSignal(elapsed) {
+            let distToNeedle = playerPos.distanceTo(needlePosition);
+            let maxDist = 18.0;
+            let signalRatio = Math.max(0, Math.min(1, 1 - (distToNeedle / maxDist)));
+
+            document.getElementById('signal-bar').style.width = `${(signalRatio * 100).toFixed(0)}%`;
+
+            // Signal Beep Rate based on distance
+            if (state.activeSlot === 3 && signalRatio > 0.1) {
+                let beepInterval = 1.2 - (signalRatio * 1.0); // Beeps faster as player gets closer
+                if (elapsed - lastBeepTime >= beepInterval) {
+                    audio.playBeep(0.8 + signalRatio * 0.8);
+                    lastBeepTime = elapsed;
+                }
+            }
+        }
+
+        function updateContextPrompts() {
+            const prompt = document.getElementById('context-prompt');
+            let distHay = playerPos.distanceTo(HAYSTACK_CENTER);
             let distFarmer = playerPos.distanceTo(LOCATIONS.FARMER);
 
-            if (distHaystack < 5.0) {
+            if (distHay <= HAYSTACK_RADIUS + 1.5) {
                 prompt.style.display = 'block';
-                prompt.innerText = "Press [E] or Space to Search Haystack";
-            } else if (distFarmer < 4.0) {
+                prompt.innerText = "Press [E] or [Space] to Search Haystack";
+            } else if (distFarmer <= 4.0) {
                 prompt.style.display = 'block';
-                prompt.innerText = "Press [E] or Space to Open Farmer Market";
+                prompt.innerText = "Press [E] or [Space] to Open Farmer Market";
             } else {
                 prompt.style.display = 'none';
             }
         }
 
-        // Passive Income Generation (Auto Collectors & Sellers)
         function passiveIncomeTick() {
-            // Auto Harvest
-            if (state.autoHayPerSec > 0) {
-                state.hay += state.autoHayPerSec;
+            if (state.autoHaySec > 0) {
+                state.hay += state.autoHaySec;
             }
 
-            // Auto Sell
-            if (state.autoSellPerSec > 0 && state.hay > 0) {
-                let amountToSell = Math.min(state.hay, state.autoSellPerSec);
-                state.hay -= amountToSell;
-                state.coins += amountToSell;
+            if (state.autoSellSec > 0 && state.hay > 0) {
+                let toSell = Math.min(state.hay, state.autoSellSec);
+                state.hay -= toSell;
+                state.coins += toSell;
             }
 
             updateUI();
         }
 
         /* ==========================================================================
-           7. SHOP, UPGRADES & UI MANAGEMENT
+           7. UPGRADES & UI DYNAMICS
            ========================================================================== */
 
         function buyUpgrade(key) {
@@ -1000,95 +1216,81 @@
             if (state.coins >= upg.cost) {
                 state.coins -= upg.cost;
                 upg.count++;
-                upg.cost = Math.floor(upg.baseCost * Math.pow(1.2, upg.count));
+                upg.cost = Math.floor(upg.baseCost * Math.pow(1.22, upg.count));
 
                 recalculateStats();
                 renderUpgradesUI();
                 updateUI();
-                showToast(`Successfully upgraded ${upg.name}!`);
+                showToast(`Upgraded ${upg.name}!`);
             } else {
                 showToast("Not enough Coins!");
             }
         }
 
         function recalculateStats() {
-            state.clickPower = 1 + (state.upgrades.pitchfork.count * state.upgrades.pitchfork.power);
-            state.needleChance = 0.01 + 
-                (state.upgrades.detector.count * state.upgrades.detector.power) + 
-                (state.upgrades.magnet.count * state.upgrades.magnet.power);
-            
-            state.autoHayPerSec = (state.upgrades.helper.count * state.upgrades.helper.power) + 
-                                  (state.upgrades.baler.count * state.upgrades.baler.power);
-
-            state.autoSellPerSec = (state.upgrades.trader.count * state.upgrades.trader.power);
+            state.searchPower = 1 + (state.upgrades.pitchfork.count * state.upgrades.pitchfork.power);
+            state.needleSearchRadius = 1.5 + (state.upgrades.sifter.count * state.upgrades.sifter.power);
+            state.autoHaySec = (state.upgrades.helper.count * state.upgrades.helper.power);
+            state.autoSellSec = (state.upgrades.trader.count * state.upgrades.trader.power);
         }
 
         function updateUI() {
-            document.getElementById('ui-hay').innerText = Math.floor(state.hay).toLocaleString();
-            document.getElementById('ui-coins').innerText = Math.floor(state.coins).toLocaleString();
-            document.getElementById('ui-needles').innerText = state.needles.toLocaleString();
+            document.getElementById('val-hay').innerText = Math.floor(state.hay).toLocaleString();
+            document.getElementById('val-coins').innerText = Math.floor(state.coins).toLocaleString();
+            document.getElementById('val-needles').innerText = state.needles.toLocaleString();
 
-            // Dynamically check buy button states in shop panel
             for (let key in state.upgrades) {
-                let btn = document.getElementById(`buy-btn-${key}`);
-                if (btn) {
-                    btn.disabled = state.coins < state.upgrades[key].cost;
-                }
+                let btn = document.getElementById(`upg-btn-${key}`);
+                if (btn) btn.disabled = state.coins < state.upgrades[key].cost;
             }
         }
 
         function renderUpgradesUI() {
-            const container = document.getElementById('upgrades-list');
-            container.innerHTML = '';
+            const list = document.getElementById('upgrades-list');
+            list.innerHTML = '';
 
             for (let key in state.upgrades) {
                 let upg = state.upgrades[key];
                 let card = document.createElement('div');
-                card.className = 'upgrade-card';
+                card.className = 'upg-card';
                 card.innerHTML = `
-                    <div class="upgrade-info">
-                        <h3>${upg.name}</h3>
-                        <span class="level">Lvl ${upg.count}</span>
+                    <div class="upg-card-head">
+                        <h4>${upg.name}</h4>
+                        <span class="lvl">Lvl ${upg.count}</span>
                     </div>
-                    <div class="upgrade-desc">${upg.desc}</div>
-                    <button class="buy-btn" id="buy-btn-${key}" onclick="buyUpgrade('${key}')">
+                    <div class="upg-desc">${upg.desc}</div>
+                    <button class="btn-action" id="upg-btn-${key}" onclick="buyUpgrade('${key}')">
                         <span>Upgrade</span>
                         <span>🪙 ${upg.cost.toLocaleString()}</span>
                     </button>
                 `;
-                container.appendChild(card);
+                list.appendChild(card);
             }
         }
 
-        function toggleShop() {
-            document.getElementById('shop-panel').classList.toggle('open');
-        }
-
-        function openShop() {
-            document.getElementById('shop-panel').classList.add('open');
+        function toggleDrawer() {
+            document.getElementById('drawer-panel').classList.toggle('open');
         }
 
         function showToast(msg) {
-            const container = document.getElementById('notification-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast-msg';
-            toast.innerText = msg;
-            container.appendChild(toast);
+            const container = document.getElementById('toast-container');
+            const item = document.createElement('div');
+            item.className = 'toast-item';
+            item.innerText = msg;
+            container.appendChild(item);
 
-            setTimeout(() => toast.remove(), 4000);
+            setTimeout(() => item.remove(), 4000);
         }
 
-        // Floating 3D Projection Text Engine
-        function spawn3DFloatingText(text, worldPos, color) {
+        function spawnScreenFloatText(text, worldPos, color) {
             const el = document.createElement('div');
-            el.className = 'world-text';
+            el.className = 'world-text-float';
             el.innerText = text;
             el.style.color = color;
 
-            // Project 3D vector onto 2D screen coordinates
-            const screenPos = worldPos.clone().add(new THREE.Vector3(0, 2.5, 0)).project(camera);
-            const x = (screenPos.x * .5 + .5) * window.innerWidth;
-            const y = (-(screenPos.y * .5) + .5) * window.innerHeight;
+            const proj = worldPos.clone().add(new THREE.Vector3(0, 2.2, 0)).project(camera);
+            const x = (proj.x * .5 + .5) * window.innerWidth;
+            const y = (-(proj.y * .5) + .5) * window.innerHeight;
 
             el.style.left = `${x}px`;
             el.style.top = `${y}px`;
