@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cat Escape 3D</title>
+  <title>Cat Escape 3D - Jumpscare Edition</title>
   <style>
     * {
       box-sizing: border-box;
@@ -162,6 +162,59 @@
       border-radius: 4px;
       text-align: right;
     }
+
+    /* --- JUMPSCARE OVERLAY STYLES --- */
+    #jumpscare-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 200;
+      background: #000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #jumpscare-face {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: jumpscareShake 0.05s infinite alternate;
+    }
+    #jumpscare-face svg {
+      width: 90vmin;
+      height: 90vmin;
+      filter: drop-shadow(0 0 30px #ff0000);
+    }
+    @keyframes jumpscareShake {
+      0% { transform: scale(1.1) translate(-10px, -10px) rotate(-3deg); filter: invert(0); }
+      50% { transform: scale(1.3) translate(15px, 10px) rotate(3deg); filter: invert(0.8) hue-rotate(180deg); }
+      100% { transform: scale(1.2) translate(-5px, 15px) rotate(-1deg); filter: invert(0); }
+    }
+    #flash-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #ff0000;
+      opacity: 0;
+      z-index: 201;
+      pointer-events: none;
+    }
+    @keyframes flashAnim {
+      0% { opacity: 0.8; }
+      50% { opacity: 0; }
+      100% { opacity: 0.5; }
+    }
+    .flashing {
+      animation: flashAnim 0.08s infinite alternate;
+    }
   </style>
 </head>
 <body>
@@ -181,18 +234,140 @@
     </div>
   </div>
 
+  <!-- Jumpscare Display -->
+  <div id="jumpscare-overlay">
+    <div id="flash-screen" class="flashing"></div>
+    <div id="jumpscare-face">
+      <!-- Scary Stylized Cat in the Hat SVG Face -->
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background Dark Halo -->
+        <circle cx="100" cy="100" r="95" fill="#050000" stroke="#ff0000" stroke-width="4"/>
+        
+        <!-- Cat Face Base -->
+        <path d="M 30,100 Q 100,180 170,100 Q 180,40 100,50 Q 20,40 30,100 Z" fill="#111" stroke="#fff" stroke-width="3"/>
+        <path d="M 45,100 Q 100,165 155,100 Q 150,70 100,80 Q 50,70 45,100 Z" fill="#eee"/>
+        
+        <!-- Giant Terrifying Eyes -->
+        <ellipse cx="70" cy="90" rx="22" ry="28" fill="#ff0000" stroke="#000" stroke-width="3"/>
+        <ellipse cx="130" cy="90" rx="22" ry="28" fill="#ff0000" stroke="#000" stroke-width="3"/>
+        <ellipse cx="70" cy="90" rx="6" ry="20" fill="#000"/>
+        <ellipse cx="130" cy="90" rx="6" ry="20" fill="#000"/>
+        <circle cx="68" cy="82" r="3" fill="#fff"/>
+        <circle cx="128" cy="82" r="3" fill="#fff"/>
+
+        <!-- Evil Nose -->
+        <polygon points="100,105 90,115 110,115" fill="#ff0000"/>
+
+        <!-- Screaming Mouth with Sharp Teeth -->
+        <path d="M 50,130 Q 100,195 150,130 Q 100,120 50,130 Z" fill="#000" stroke="#ff0000" stroke-width="3"/>
+        <!-- Top Teeth -->
+        <polygon points="60,127 67,142 74,128" fill="#fff"/>
+        <polygon points="76,128 84,147 92,129" fill="#fff"/>
+        <polygon points="94,129 100,150 106,129" fill="#fff"/>
+        <polygon points="108,129 116,147 124,128" fill="#fff"/>
+        <polygon points="126,128 133,142 140,127" fill="#fff"/>
+        <!-- Bottom Teeth -->
+        <polygon points="65,148 72,135 79,153" fill="#fff"/>
+        <polygon points="85,156 92,138 99,160" fill="#fff"/>
+        <polygon points="101,160 108,138 115,156" fill="#fff"/>
+        <polygon points="121,153 128,135 135,148" fill="#fff"/>
+
+        <!-- Tall Striped Hat -->
+        <path d="M 60,62 L 140,62 L 150,10 L 50,10 Z" fill="#cc0000" stroke="#000" stroke-width="3"/>
+        <rect x="53" y="20" width="94" height="12" fill="#fff"/>
+        <rect x="57" y="42" width="86" height="12" fill="#fff"/>
+        <ellipse cx="100" cy="62" rx="50" ry="8" fill="#cc0000" stroke="#000" stroke-width="2"/>
+
+        <!-- Whiskers -->
+        <line x1="40" y1="110" x2="5" y2="100" stroke="#fff" stroke-width="3"/>
+        <line x1="40" y1="118" x2="0" y2="120" stroke="#fff" stroke-width="3"/>
+        <line x1="160" y1="110" x2="195" y2="100" stroke="#fff" stroke-width="3"/>
+        <line x1="160" y1="118" x2="200" y2="120" stroke="#fff" stroke-width="3"/>
+      </svg>
+    </div>
+  </div>
+
   <div id="screen-overlay">
     <h1 id="overlay-title">CAT ESCAPE</h1>
     <p id="overlay-desc">
-      Click anywhere or press the button below to start. Move your mouse to look around in 360 degrees. Find the golden key and avoid the Cat in the Hat!
+      Click anywhere to start. Look around in 360 degrees using your mouse. Find the golden key and reach the exit... BUT DON'T LET THE CAT TOUCH YOU!
     </p>
-    <button class="btn" id="start-btn">CLICK TO PLAY & LOOK AROUND</button>
+    <button class="btn" id="start-btn">CLICK TO PLAY</button>
   </div>
 
-  <!-- Include Three.js for fast, optimized 3D graphics -->
+  <!-- Include Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <script>
+    // --- AUDIO SYNTHESIS FOR JUMPSCARE SOUND ---
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playJumpscareSound() {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const now = audioCtx.currentTime;
+
+      // 1. Loud Screaming Noise Generator (Buffer)
+      const bufferSize = audioCtx.sampleRate * 1.5; // 1.5 seconds sound
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1; // White noise
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      // High pass filter for harsh screech
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(1000, now);
+      filter.frequency.linearRampToValueAtTime(3000, now + 0.2);
+
+      // Distorted Oscillator Layer 1 (Low harsh pitch)
+      const osc1 = audioCtx.createOscillator();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(150, now);
+      osc1.frequency.exponentialRampToValueAtTime(60, now + 1.2);
+
+      // Distorted Oscillator Layer 2 (High piercing pitch)
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(800, now);
+      osc2.frequency.linearRampToValueAtTime(1200, now + 0.1);
+      osc2.frequency.exponentialRampToValueAtTime(200, now + 1.0);
+
+      // Master Gain / Volume Envelope
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(1.0, now); // MAX VOLUME
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 1.4);
+
+      // Connect Nodes
+      noise.connect(filter);
+      filter.connect(gain);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      // Start Audio
+      noise.start(now);
+      osc1.start(now);
+      osc2.start(now);
+
+      noise.stop(now + 1.5);
+      osc1.stop(now + 1.5);
+      osc2.stop(now + 1.5);
+    }
+
     // --- GAME STATE VARIABLES ---
     const STATE = {
       playing: false,
@@ -204,7 +379,7 @@
       lastFpsUpdate: performance.now()
     };
 
-    // --- CONFIGURATION & TUNING ---
+    // --- CONFIGURATION ---
     const CONFIG = {
       MAZE_SIZE: 15,
       CELL_SIZE: 10,
@@ -212,13 +387,13 @@
       PLAYER_SPEED: 8.0,
       PLAYER_RUN_SPEED: 14.0,
       PLAYER_RADIUS: 0.8,
-      CAT_SPEED: 6.5,
-      CAT_RADIUS: 1.0,
+      CAT_SPEED: 6.8,
+      CAT_RADIUS: 1.1,
       FOV: 75,
       RENDER_DISTANCE: 120
     };
 
-    // --- MAZE GRID GENERATION ---
+    // --- MAZE GENERATOR ---
     class MazeGenerator {
       constructor(size) {
         this.size = size;
@@ -284,38 +459,30 @@
       }
     }
 
-    // --- THREE.JS SCENE SETUP ---
+    // --- THREE.JS SETUP ---
     let scene, camera, renderer;
     let playerObj, catObj, keyObj, doorObj;
     let wallBoxes = [];
     let clock = new THREE.Clock();
 
-    // Input tracker
     const keys = { w: false, a: false, s: false, d: false, shift: false };
-    
-    // Euler & Rotation setup for smooth mouse look
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     let cameraRotation = { yaw: 0, pitch: 0 };
 
     function initEngine() {
       const container = document.getElementById('canvas-container');
 
-      // Scene
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x0a0a0c);
       scene.fog = new THREE.FogExp2(0x0a0a0c, 0.025);
 
-      // Camera
       camera = new THREE.PerspectiveCamera(CONFIG.FOV, window.innerWidth / window.innerHeight, 0.1, CONFIG.RENDER_DISTANCE);
       
-      // Renderer
       renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-      renderer.shadowMap.enabled = false;
       container.appendChild(renderer.domElement);
 
-      // LIGHTING - Fully Opaque / Hard Light setup
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
       scene.add(ambientLight);
 
@@ -323,27 +490,21 @@
       dirLight.position.set(20, 40, 20);
       scene.add(dirLight);
 
-      // Build World
       buildWorld();
-
-      // Controls setup
       setupControls();
 
-      // Window Resize Listener
       window.addEventListener('resize', onWindowResize, false);
     }
 
-    // --- BUILD WORLD GRAPHICS ---
+    // --- BUILD MAZE & ENTITIES ---
     function buildWorld() {
       const mazeGen = new MazeGenerator(CONFIG.MAZE_SIZE);
       const grid = mazeGen.generate();
 
-      // Materials - OPAQUE
-      const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a4a, transparent: false, opacity: 1.0 });
-      const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x15151c, transparent: false, opacity: 1.0 });
-      const ceilingMaterial = new THREE.MeshLambertMaterial({ color: 0x08080a, transparent: false, opacity: 1.0 });
+      const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a4a });
+      const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x15151c });
+      const ceilingMaterial = new THREE.MeshLambertMaterial({ color: 0x08080a });
 
-      // Generate Floor & Ceiling
       const totalWorldSize = CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE;
       const floorGeo = new THREE.PlaneGeometry(totalWorldSize * 2, totalWorldSize * 2);
       
@@ -357,7 +518,6 @@
       ceiling.position.set(totalWorldSize / 2, CONFIG.WALL_HEIGHT, totalWorldSize / 2);
       scene.add(ceiling);
 
-      // Build Maze Walls
       for (let r = 0; r < CONFIG.MAZE_SIZE; r++) {
         for (let c = 0; c < CONFIG.MAZE_SIZE; c++) {
           const cell = grid[r][c];
@@ -381,23 +541,20 @@
         wallBoxes.push(box);
       }
 
-      // Create Player Object Container
+      // Player Object
       playerObj = new THREE.Object3D();
       playerObj.position.set(CONFIG.CELL_SIZE / 2, 1.6, CONFIG.CELL_SIZE / 2);
       scene.add(playerObj);
 
-      // Camera parented to player
       playerObj.add(camera);
       camera.position.set(0, 0, 0);
 
-      // Create Key
+      // Key & Cat
       createKey(CONFIG.MAZE_SIZE - 2, CONFIG.MAZE_SIZE - 2);
-
-      // Create Cat In The Hat
       createCatInTheHat(CONFIG.MAZE_SIZE - 1, 1);
     }
 
-    // --- PROCEDURAL CAT IN THE HAT MODEL ---
+    // --- CAT MODEL ---
     function createCatInTheHat(gridX, gridZ) {
       catObj = new THREE.Group();
 
@@ -405,44 +562,37 @@
       const whiteMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
       const redMat = new THREE.MeshLambertMaterial({ color: 0xcc1111 });
 
-      // Body
       const bodyGeo = new THREE.CylinderGeometry(0.6, 0.7, 2.5, 8);
       const body = new THREE.Mesh(bodyGeo, blackMat);
       body.position.y = 1.25;
       catObj.add(body);
 
-      // Chest
       const chestGeo = new THREE.CylinderGeometry(0.45, 0.5, 1.8, 8, 1, false, -Math.PI / 4, Math.PI / 2);
       const chest = new THREE.Mesh(chestGeo, whiteMat);
       chest.position.set(0, 1.3, 0.15);
       catObj.add(chest);
 
-      // Head
       const headGeo = new THREE.SphereGeometry(0.6, 8, 8);
       const head = new THREE.Mesh(headGeo, blackMat);
       head.position.y = 2.8;
       catObj.add(head);
 
-      // Face
       const faceGeo = new THREE.SphereGeometry(0.55, 8, 8, 0, Math.PI);
       const face = new THREE.Mesh(faceGeo, whiteMat);
       face.position.set(0, 2.8, 0.1);
       face.rotation.y = -Math.PI / 2;
       catObj.add(face);
 
-      // Bowtie
       const bowGeo = new THREE.BoxGeometry(0.6, 0.3, 0.2);
       const bow = new THREE.Mesh(bowGeo, redMat);
       bow.position.set(0, 2.3, 0.5);
       catObj.add(bow);
 
-      // Hat Brim
       const hatBrimGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.08, 12);
       const hatBrim = new THREE.Mesh(hatBrimGeo, redMat);
       hatBrim.position.set(0, 3.3, 0);
       catObj.add(hatBrim);
 
-      // Striped Hat
       const stripeHeight = 0.4;
       for (let i = 0; i < 5; i++) {
         const stripeGeo = new THREE.CylinderGeometry(0.6, 0.6, stripeHeight, 10);
@@ -461,7 +611,7 @@
       scene.add(catObj);
     }
 
-    // --- CREATE KEY ---
+    // --- KEY ---
     function createKey(gridX, gridZ) {
       keyObj = new THREE.Group();
 
@@ -486,15 +636,11 @@
       scene.add(keyObj);
     }
 
-    // --- CREATE HIGHLIGHTED GREEN DOOR ---
+    // --- EXIT DOOR ---
     function createGreenDoor() {
       doorObj = new THREE.Group();
 
-      const greenDoorMat = new THREE.MeshLambertMaterial({ 
-        color: 0x00ff22, 
-        emissive: 0x00aa11
-      });
-
+      const greenDoorMat = new THREE.MeshLambertMaterial({ color: 0x00ff22, emissive: 0x00aa11 });
       const frameMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
 
       const frameGeo = new THREE.BoxGeometry(4.4, CONFIG.WALL_HEIGHT, 0.6);
@@ -512,16 +658,17 @@
       doorObj.add(doorLight);
 
       doorObj.position.set(CONFIG.CELL_SIZE / 2, 0, CONFIG.CELL_SIZE * 1.5);
-      
+
       scene.add(doorObj);
     }
 
-    // --- CONTROLS & LOOK AROUND (POINTER LOCK) ---
+    // --- CONTROLS ---
     function setupControls() {
       const overlay = document.getElementById('screen-overlay');
       const startBtn = document.getElementById('start-btn');
 
       function requestLock() {
+        initAudio(); // Initialize audio context on user click
         document.body.requestPointerLock();
       }
 
@@ -537,13 +684,13 @@
             STATE.playing = false;
             overlay.style.display = 'flex';
             document.getElementById('overlay-title').innerText = 'PAUSED';
-            document.getElementById('overlay-desc').innerText = 'Click anywhere to lock mouse and resume looking around.';
+            document.getElementById('overlay-desc').innerText = 'Click anywhere to lock mouse and resume.';
             startBtn.innerText = 'RESUME';
           }
         }
       });
 
-      // MOUSE LOOK AROUND CODE
+      // MOUSE LOOK AROUND
       document.addEventListener('mousemove', (e) => {
         if (!STATE.playing) return;
 
@@ -552,10 +699,8 @@
         cameraRotation.yaw -= e.movementX * sensitivity;
         cameraRotation.pitch -= e.movementY * sensitivity;
 
-        // Limit looking straight up or down (clamp)
         cameraRotation.pitch = Math.max(-Math.PI / 2.0 + 0.1, Math.min(Math.PI / 2.0 - 0.1, cameraRotation.pitch));
 
-        // Apply rotations using Euler
         euler.x = cameraRotation.pitch;
         euler.y = cameraRotation.yaw;
         euler.z = 0;
@@ -584,7 +729,7 @@
       });
     }
 
-    // --- WALL COLLISIONS ---
+    // --- COLLISIONS & UPDATES ---
     function checkWallCollisions(newPos) {
       const playerRadius = CONFIG.PLAYER_RADIUS;
 
@@ -609,7 +754,6 @@
       }
     }
 
-    // --- GAME LOOP & UPDATES ---
     function updatePlayer(delta) {
       if (!STATE.playing) return;
 
@@ -622,8 +766,6 @@
       if (keys.d) moveVector.x += 1;
 
       moveVector.normalize();
-      
-      // Orient movement relative to yaw look direction
       moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraRotation.yaw);
 
       const newPos = playerObj.position.clone().addScaledVector(moveVector, speed * delta);
@@ -634,7 +776,6 @@
       playerObj.position.z = newPos.z;
     }
 
-    // --- CAT CHASE ---
     function updateCat(delta) {
       if (!catObj || !STATE.playing) return;
 
@@ -646,9 +787,9 @@
 
       const distToPlayer = dir.length();
 
-      // TOUCH DEATH CONDITION
+      // TOUCH CAT -> TRIGGER JUMPSCARE
       if (distToPlayer < (CONFIG.CAT_RADIUS + CONFIG.PLAYER_RADIUS)) {
-        triggerDeath();
+        triggerJumpscare();
         return;
       }
 
@@ -657,7 +798,6 @@
       catObj.lookAt(targetPos.x, catObj.position.y, targetPos.z);
     }
 
-    // --- INTERACTIONS ---
     function checkInteractions() {
       if (!STATE.playing) return;
 
@@ -686,22 +826,34 @@
       }
     }
 
-    // --- DEATH / WIN HANDLERS ---
-    function triggerDeath() {
+    // --- JUMPSCARE & GAME OVER HANDLERS ---
+    function triggerJumpscare() {
       STATE.playing = false;
       STATE.gameOver = true;
       document.exitPointerLock();
 
-      const overlay = document.getElementById('screen-overlay');
-      document.getElementById('overlay-title').innerText = 'YOU DIED!';
-      document.getElementById('overlay-title').style.color = '#ff1111';
-      document.getElementById('overlay-desc').innerText = 'The Cat in the Hat touched you! You died instantly.';
-      
-      const btn = document.getElementById('start-btn');
-      btn.innerText = 'RETRY';
-      btn.onclick = () => { location.reload(); };
+      // Show Jumpscare visual
+      const jumpscareOverlay = document.getElementById('jumpscare-overlay');
+      jumpscareOverlay.style.display = 'flex';
 
-      overlay.style.display = 'flex';
+      // Play horrific screech audio
+      playJumpscareSound();
+
+      // Hold jumpscare on screen for 1.5 seconds, then show Game Over screen
+      setTimeout(() => {
+        jumpscareOverlay.style.display = 'none';
+
+        const overlay = document.getElementById('screen-overlay');
+        document.getElementById('overlay-title').innerText = 'YOU DIED!';
+        document.getElementById('overlay-title').style.color = '#ff1111';
+        document.getElementById('overlay-desc').innerText = 'The Cat in the Hat caught you!';
+
+        const btn = document.getElementById('start-btn');
+        btn.innerText = 'TRY AGAIN';
+        btn.onclick = () => { location.reload(); };
+
+        overlay.style.display = 'flex';
+      }, 1500);
     }
 
     function triggerWin() {
@@ -712,7 +864,7 @@
       const overlay = document.getElementById('screen-overlay');
       document.getElementById('overlay-title').innerText = 'YOU ESCAPED!';
       document.getElementById('overlay-title').style.color = '#00ff22';
-      document.getElementById('overlay-desc').innerText = 'You opened the highlighted green door and escaped!';
+      document.getElementById('overlay-desc').innerText = 'You opened the green door and escaped the Cat!';
 
       const btn = document.getElementById('start-btn');
       btn.innerText = 'PLAY AGAIN';
@@ -721,7 +873,7 @@
       overlay.style.display = 'flex';
     }
 
-    // --- MAIN TICK ---
+    // --- GAME LOOP ---
     function animate() {
       requestAnimationFrame(animate);
 
