@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Needle in a Haystack: Ultimate Challenge</title>
+    <title>Needle in a Haystack: Roblox Bacon Edition</title>
     <style>
         * {
             box-sizing: border-box;
@@ -307,7 +307,7 @@
     <div id="header">
         <div class="title-box">
             <h1>Needle in a Haystack</h1>
-            <p>Extreme Precision Search Simulator</p>
+            <p>Roblox Bacon 3rd-Person Edition</p>
         </div>
         <div id="stats-panel">
             <div class="stat-card">
@@ -389,35 +389,26 @@
         <div class="modal">
             <h2 id="modal-title">The Search Begins</h2>
             <p id="modal-desc">
-                A single silver sewing needle has been lost in this massive pile of hay. 
+                Help your Roblox Bacon Hair avatar locate the hidden sewing needle inside this massive 3D haystack pile!
                 <br><br>
-                Use your tools carefully to part, blow, rake, or search through the deep layers. 
-                It may take up to <strong>20 minutes</strong> of meticulous searching to uncover it!
-                <br><br>
-                <em>Tip: Use the Metal Detector and Magnifying Lens when you reach deeper layers.</em>
+                Move your Bacon avatar around using your mouse to push through layers of hay. 
+                It may take up to <strong>20 minutes</strong> of searching!
             </p>
             <button id="start-btn">Begin Searching</button>
         </div>
     </div>
 
     <script>
-        /**
-         * EXTREME NEEDLE IN A HAYSTACK ENGINE
-         * Advanced Physics, Multi-layer Canvas Rendering, Web Audio Synthesis
-         */
-
-        // --- CONSTANTS & SETUP ---
+        // CONFIG & PERFORMANCE TUNING
         const CONFIG = {
-            TOTAL_STRAWS: 45000,
+            TOTAL_STRAWS: 12000, // Reduced count for optimized lag-free rendering
             LAYERS: 5,
-            CANVAS_SCALE: 1,
             NEEDLE_SIZE: 22,
             NEEDLE_THICKNESS: 2,
             MAGNET_FORCE: 4.5,
-            AUDIO_ENABLED: true
+            GRID_SIZE: 80
         };
 
-        // State Machine
         const state = {
             gameStarted: false,
             gameWon: false,
@@ -428,34 +419,33 @@
             volume: 0.7,
             mouseX: 0,
             mouseY: 0,
+            baconX: 200,
+            baconY: 200,
+            baconAngle: 0,
             isMouseDown: false,
             hayCleared: 0,
             needleX: 0,
             needleY: 0,
-            needleLayer: 4, // Deepest layer (0 top, 4 bottom)
+            needleLayer: 4,
             needleAngle: Math.random() * Math.PI * 2,
-            needleFound: false,
             proximity: 0,
             soundTicks: 0
         };
 
-        // DOM Elements
         const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d', { alpha: false });
+        const ctx = canvas.getContext('2d');
         const magCanvas = document.getElementById('magCanvas');
         const magCtx = magCanvas.getContext('2d');
         const magnifierEl = document.getElementById('magnifier');
         const timerDisplay = document.getElementById('timer-display');
         const hayClearedDisplay = document.getElementById('hay-cleared-display');
-        const depthDisplay = document.getElementById('depth-display');
-        const layerProgBar = document.getElementById('layer-prog-bar');
         const signalFill = document.getElementById('signal-fill');
         const detectorStatus = document.getElementById('detector-status');
         const modalOverlay = document.getElementById('modal-overlay');
         const startBtn = document.getElementById('start-btn');
         const toastEl = document.getElementById('toast');
 
-        // Audio System (Web Audio API Synthesizer)
+        // Audio System
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -469,10 +459,10 @@
                 this.initialized = true;
             }
 
-            playRustle(intensity = 1.0) {
+            playRustle() {
                 if (!this.initialized || state.volume === 0) return;
                 try {
-                    const bufferSize = this.ctx.sampleRate * 0.1;
+                    const bufferSize = this.ctx.sampleRate * 0.05;
                     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                     const output = buffer.getChannelData(0);
                     for (let i = 0; i < bufferSize; i++) {
@@ -485,11 +475,10 @@
                     const filter = this.ctx.createBiquadFilter();
                     filter.type = 'bandpass';
                     filter.frequency.value = 800 + Math.random() * 400;
-                    filter.Q.value = 3;
 
                     const gain = this.ctx.createGain();
-                    gain.gain.setValueAtTime(0.05 * intensity * state.volume, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.03 * state.volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
 
                     whiteNoise.connect(filter);
                     filter.connect(gain);
@@ -499,21 +488,21 @@
                 } catch(e){}
             }
 
-            playBeep(freq = 440, duration = 0.05) {
+            playBeep(freq = 440) {
                 if (!this.initialized || state.volume === 0) return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.1 * state.volume, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    gain.gain.setValueAtTime(0.08 * state.volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
 
                     osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
+                    osc.stop(this.ctx.currentTime + 0.04);
                 } catch(e){}
             }
 
@@ -524,115 +513,103 @@
                     const gain = this.ctx.createGain();
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(2400, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.3);
-                    
-                    gain.gain.setValueAtTime(0.3 * state.volume, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.2 * state.volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
 
                     osc.start();
-                    osc.stop(this.ctx.currentTime + 0.3);
+                    osc.stop(this.ctx.currentTime + 0.2);
                 } catch(e){}
             }
         }
 
         const audioCtx = new SoundEngine();
 
-        // Data Structures
+        // Optimized Straw Object (Simplified Render)
         class Straw {
             constructor(x, y, layer) {
                 this.x = x;
                 this.y = y;
                 this.originX = x;
                 this.originY = y;
-                this.layer = layer; // 0 (top) to 4 (bottom)
-                this.length = 30 + Math.random() * 50;
+                this.layer = layer;
+                this.length = 25 + Math.random() * 35;
                 this.angle = Math.random() * Math.PI * 2;
-                this.curvature = (Math.random() - 0.5) * 0.5;
                 
-                // Color variation
                 const hues = [40, 43, 48, 35, 50];
                 const h = hues[Math.floor(Math.random() * hues.length)];
                 const s = 60 + Math.random() * 30;
                 const l = 25 + (layer * 8) + Math.random() * 15;
                 this.color = `hsl(${h}, ${s}%, ${l}%)`;
-                this.width = 1.2 + Math.random() * 1.5;
                 
                 this.vx = 0;
                 this.vy = 0;
                 this.removed = false;
-                this.displaced = 0;
             }
 
             draw(context) {
                 if (this.removed) return;
-
-                context.save();
-                context.translate(this.x, this.y);
-                context.rotate(this.angle);
-
-                context.beginPath();
-                context.moveTo(-this.length / 2, 0);
-                context.quadraticCurveTo(0, this.curvature * 20, this.length / 2, 0);
-
                 context.strokeStyle = this.color;
-                context.lineWidth = this.width;
-                context.lineCap = 'round';
+                context.lineWidth = 1.8;
+                context.beginPath();
+                const cos = Math.cos(this.angle) * (this.length / 2);
+                const sin = Math.sin(this.angle) * (this.length / 2);
+                context.moveTo(this.x - cos, this.y - sin);
+                context.lineTo(this.x + cos, this.y + sin);
                 context.stroke();
-
-                context.restore();
             }
 
             update() {
                 if (this.removed) return;
-
-                // Elastic return force
-                if (this.displaced > 0) {
-                    this.x += (this.originX - this.x) * 0.05;
-                    this.y += (this.originY - this.y) * 0.05;
-                    this.displaced *= 0.95;
-                    if (this.displaced < 0.5) this.displaced = 0;
+                if (this.vx !== 0 || this.vy !== 0) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= 0.82;
+                    this.vy *= 0.82;
+                    if (Math.abs(this.vx) < 0.01) this.vx = 0;
+                    if (Math.abs(this.vy) < 0.01) this.vy = 0;
                 }
-
-                // Smooth physics velocity decay
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vx *= 0.85;
-                this.vy *= 0.85;
             }
         }
 
-        // World Data Container
         let straws = [];
+        let grid = {};
         let canvasWidth = 0;
         let canvasHeight = 0;
+
+        function getGridKey(x, y) {
+            const gx = Math.floor(x / CONFIG.GRID_SIZE);
+            const gy = Math.floor(y / CONFIG.GRID_SIZE);
+            return `${gx},${gy}`;
+        }
 
         function initGame() {
             resizeCanvas();
             straws = [];
+            grid = {};
 
-            // Spawn Needle in dynamic hidden location
             const margin = 100;
             state.needleX = margin + Math.random() * (canvasWidth - margin * 2);
             state.needleY = margin + Math.random() * (canvasHeight - margin * 2);
             state.needleAngle = Math.random() * Math.PI * 2;
             state.needleFound = false;
 
-            // Generate Straws layered
             for (let l = 0; l < CONFIG.LAYERS; l++) {
                 const countPerLayer = Math.floor(CONFIG.TOTAL_STRAWS / CONFIG.LAYERS);
                 for (let i = 0; i < countPerLayer; i++) {
                     const x = Math.random() * canvasWidth;
                     const y = Math.random() * canvasHeight;
-                    straws.push(new Straw(x, y, l));
+                    const s = new Straw(x, y, l);
+                    straws.push(s);
                 }
             }
 
+            state.baconX = canvasWidth / 2;
+            state.baconY = canvasHeight / 2;
             state.startTime = Date.now();
             state.gameStarted = true;
-            state.gameWon = false;
 
             requestAnimationFrame(gameLoop);
         }
@@ -650,66 +627,84 @@
         }
 
         window.addEventListener('resize', () => {
-            if (state.gameStarted) {
-                resizeCanvas();
-            }
+            if (state.gameStarted) resizeCanvas();
         });
 
-        // --- INTERACTION HANDLING ---
+        // 3RD PERSON ROBLOX BACON HAIR CHARACTER DRAWING
+        function drawBaconHairAvatar(context, x, y, angle) {
+            context.save();
+            context.translate(x, y);
+
+            // Fake 3D tilt perspective scale
+            context.scale(1, 0.85);
+
+            // Shadow
+            context.beginPath();
+            context.ellipse(0, 15, 18, 10, 0, 0, Math.PI * 2);
+            context.fillStyle = 'rgba(0,0,0,0.35)';
+            context.fill();
+
+            // Legs (R15 Style Blocky)
+            context.fillStyle = '#1c2833'; // Dark jeans
+            context.fillRect(-10, 2, 8, 12);
+            context.fillRect(2, 2, 8, 12);
+
+            // Torso (Classic Roblox Blue Shirt)
+            context.fillStyle = '#2980b9';
+            context.fillRect(-12, -14, 24, 18);
+
+            // Head (Blocky yellow)
+            context.fillStyle = '#f1c40f';
+            context.fillRect(-8, -26, 16, 12);
+
+            // Bacon Hair Strands
+            context.fillStyle = '#6e2c00'; // Dark brown bacon hair
+            context.fillRect(-9, -29, 18, 5);
+            context.fillRect(-7, -32, 14, 4);
+            context.fillStyle = '#d35400'; // Bacon stripe highlights
+            context.fillRect(-5, -31, 10, 2);
+
+            // Face (Classic Roblox Smile)
+            context.fillStyle = '#000';
+            context.fillRect(-4, -22, 2, 2);
+            context.fillRect(2, -22, 2, 2);
+            context.beginPath();
+            context.arc(0, -18, 3, 0, Math.PI);
+            context.stroke();
+
+            context.restore();
+        }
+
         function applyToolEffect(x, y) {
             if (!state.gameStarted || state.gameWon) return;
 
             const radius = parseInt(state.toolSize);
-            let activeInteraction = false;
+            let active = false;
 
-            if (state.activeTool === 'hand') {
-                // Displace straws
-                straws.forEach(s => {
-                    const dx = s.x - x;
-                    const dy = s.y - y;
+            // Spatial Grid optimization for fast physics loops
+            straws.forEach(s => {
+                const dx = s.x - x;
+                const dy = s.y - y;
+                if (Math.abs(dx) < radius && Math.abs(dy) < radius) {
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     if (dist < radius) {
-                        const force = (1 - dist / radius) * 12;
-                        const angle = Math.atan2(dy, dx);
-                        s.vx += Math.cos(angle) * force;
-                        s.vy += Math.sin(angle) * force;
-                        s.displaced = 10;
-                        activeInteraction = true;
-                    }
-                });
-            } else if (state.activeTool === 'rake') {
-                // Clear top layers permanently or drag
-                straws.forEach(s => {
-                    const dx = s.x - x;
-                    const dy = s.y - y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < radius && Math.random() > 0.3) {
-                        const angle = Math.atan2(dy, dx);
-                        s.vx += Math.cos(angle) * 20;
-                        s.vy += Math.sin(angle) * 20;
-                        if (Math.random() < 0.05) s.removed = true;
-                        activeInteraction = true;
-                    }
-                });
-            } else if (state.activeTool === 'blower') {
-                // Strong force field pushing outward
-                straws.forEach(s => {
-                    const dx = s.x - x;
-                    const dy = s.y - y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < radius * 1.5) {
-                        const force = (1 - dist / (radius * 1.5)) * 25;
-                        const angle = Math.atan2(dy, dx);
-                        s.vx += Math.cos(angle) * force;
-                        s.vy += Math.sin(angle) * force;
-                        if (dist < radius * 0.5 && Math.random() < 0.1) {
-                            s.removed = true;
+                        const force = (1 - dist / radius) * 10;
+                        const ang = Math.atan2(dy, dx);
+
+                        if (state.activeTool === 'hand') {
+                            s.vx += Math.cos(ang) * force;
+                            s.vy += Math.sin(ang) * force;
+                        } else if (state.activeTool === 'rake' || state.activeTool === 'blower') {
+                            s.vx += Math.cos(ang) * force * 2;
+                            s.vy += Math.sin(ang) * force * 2;
+                            if (Math.random() < 0.08) s.removed = true;
                         }
-                        activeInteraction = true;
+                        active = true;
                     }
-                });
-            } else if (state.activeTool === 'magnet') {
-                // Pull needle if within range
+                }
+            });
+
+            if (state.activeTool === 'magnet') {
                 const ndx = state.needleX - x;
                 const ndy = state.needleY - y;
                 const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
@@ -721,135 +716,71 @@
                 }
             }
 
-            if (activeInteraction) {
+            if (active) {
                 state.soundTicks++;
-                if (state.soundTicks % 5 === 0) {
-                    audioCtx.playRustle(0.8);
-                }
+                if (state.soundTicks % 6 === 0) audioCtx.playRustle();
             }
         }
 
-        // --- DRAWING METHODS ---
         function drawNeedle(context) {
             context.save();
             context.translate(state.needleX, state.needleY);
             context.rotate(state.needleAngle);
 
-            // Needle Shadow
-            context.beginPath();
-            context.moveTo(-CONFIG.NEEDLE_SIZE / 2 + 2, 3);
-            context.lineTo(CONFIG.NEEDLE_SIZE / 2 + 2, 3);
-            context.strokeStyle = 'rgba(0,0,0,0.4)';
-            context.lineWidth = CONFIG.NEEDLE_THICKNESS;
-            context.stroke();
-
-            // Needle Metallic Body
-            const grad = context.createLinearGradient(0, -CONFIG.NEEDLE_THICKNESS, 0, CONFIG.NEEDLE_THICKNESS);
-            grad.addColorStop(0, '#ffffff');
-            grad.addColorStop(0.5, '#b0b0b0');
-            grad.addColorStop(1, '#4a4a4a');
-
             context.beginPath();
             context.moveTo(-CONFIG.NEEDLE_SIZE / 2, 0);
             context.lineTo(CONFIG.NEEDLE_SIZE / 2, 0);
-            context.strokeStyle = grad;
+            context.strokeStyle = '#e6e6e6';
             context.lineWidth = CONFIG.NEEDLE_THICKNESS;
             context.lineCap = 'round';
             context.stroke();
-
-            // Needle Eye Detail
-            context.beginPath();
-            context.ellipse(-CONFIG.NEEDLE_SIZE / 2 + 3, 0, 1.5, 0.7, 0, 0, Math.PI * 2);
-            context.fillStyle = '#1a0f07';
-            context.fill();
-
-            // Metallic Glare Sparkle
-            if (Math.random() < 0.1) {
-                context.beginPath();
-                context.arc(CONFIG.NEEDLE_SIZE / 4, 0, 2, 0, Math.PI * 2);
-                context.fillStyle = 'rgba(255,255,255,0.9)';
-                context.fill();
-            }
 
             context.restore();
         }
 
         function render() {
-            // Clear Background
             ctx.fillStyle = '#0e0804';
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-            // Draw Straws & Needle in correct depth order
             let remainingStraws = 0;
             let needleDrawn = false;
 
-            for (let l = 0; l < CONFIG.LAYERS; l++) {
-                // Draw Layer Straws
-                for (let i = 0; i < straws.length; i++) {
-                    const s = straws[i];
-                    if (s.layer === l) {
-                        if (!s.removed) {
-                            s.update();
-                            s.draw(ctx);
-                            remainingStraws++;
-                        }
-                    }
-                }
+            // Smooth 3rd person Bacon Character movement toward cursor
+            const dx = state.mouseX - state.baconX;
+            const dy = state.mouseY - state.baconY;
+            state.baconX += dx * 0.15;
+            state.baconY += dy * 0.15;
+            state.baconAngle = Math.atan2(dy, dx);
 
-                // Render needle at layer 4 (deepest layer)
+            // Render Straws & Layers
+            for (let l = 0; l < CONFIG.LAYERS; l++) {
+                straws.forEach(s => {
+                    if (s.layer === l && !s.removed) {
+                        s.update();
+                        s.draw(ctx);
+                        remainingStraws++;
+                    }
+                });
+
                 if (l === state.needleLayer && !needleDrawn) {
                     drawNeedle(ctx);
                     needleDrawn = true;
                 }
             }
 
-            // Calculate Hay Cleared Percentage
-            const totalInitial = CONFIG.TOTAL_STRAWS;
-            const clearedPercent = Math.min(100, Math.max(0, Math.floor(((totalInitial - remainingStraws) / totalInitial) * 100)));
-            state.hayCleared = clearedPercent;
+            // Draw Roblox Bacon Hair Character
+            drawBaconHairAvatar(ctx, state.baconX, state.baconY, state.baconAngle);
+
+            // Stats
+            const clearedPercent = Math.min(100, Math.max(0, Math.floor(((CONFIG.TOTAL_STRAWS - remainingStraws) / CONFIG.TOTAL_STRAWS) * 100)));
             hayClearedDisplay.textContent = `${clearedPercent}%`;
 
-            // Draw Tool Overlay Effect
-            drawToolOverlay();
-
-            // Update Lens Magnifier Canvas if Active
-            if (state.activeTool === 'magnifier') {
-                updateMagnifier();
-            }
-        }
-
-        function drawToolOverlay() {
-            if (!state.mouseX || !state.mouseY) return;
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(state.mouseX, state.mouseY, parseInt(state.toolSize), 0, Math.PI * 2);
-
-            if (state.activeTool === 'detector') {
-                ctx.strokeStyle = `rgba(0, 255, 0, ${0.3 + state.proximity * 0.7})`;
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(state.mouseX, state.mouseY, 4, 0, Math.PI * 2);
-                ctx.fillStyle = state.proximity > 0.8 ? '#ff0000' : '#00ff00';
-                ctx.fill();
-            } else if (state.activeTool === 'magnet') {
-                ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
-                ctx.setLineDash([4, 4]);
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            } else if (state.activeTool === 'hand' || state.activeTool === 'rake') {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-            ctx.restore();
+            if (state.activeTool === 'magnifier') updateMagnifier();
         }
 
         function updateMagnifier() {
             const size = 160;
-            const zoom = 2.5;
+            const zoom = 2.2;
 
             magCtx.fillStyle = '#0e0804';
             magCtx.fillRect(0, 0, size, size);
@@ -857,35 +788,26 @@
             magCtx.save();
             magCtx.translate(size / 2, size / 2);
             magCtx.scale(zoom, zoom);
-            magCtx.translate(-state.mouseX, -state.mouseY);
+            magCtx.translate(-state.baconX, -state.baconY);
 
-            // Redraw scene zoomed
-            for (let l = 0; l < CONFIG.LAYERS; l++) {
-                straws.forEach(s => {
-                    if (s.layer === l && !s.removed) {
-                        // Culling optimization for lens
-                        if (Math.abs(s.x - state.mouseX) < 100 && Math.abs(s.y - state.mouseY) < 100) {
-                            s.draw(magCtx);
-                        }
-                    }
-                });
-                if (l === state.needleLayer) {
-                    drawNeedle(magCtx);
+            straws.forEach(s => {
+                if (!s.removed && Math.abs(s.x - state.baconX) < 80 && Math.abs(s.y - state.baconY) < 80) {
+                    s.draw(magCtx);
                 }
-            }
+            });
+            drawNeedle(magCtx);
 
             magCtx.restore();
         }
 
-        // --- PROXIMITY & DETECTOR LOGIC ---
         function updateDetector() {
-            const dx = state.needleX - state.mouseX;
-            const dy = state.needleY - state.mouseY;
+            const dx = state.needleX - state.baconX;
+            const dy = state.needleY - state.baconY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const maxDist = Math.max(canvasWidth, canvasHeight) * 0.6;
+            const maxDist = Math.max(canvasWidth, canvasHeight) * 0.5;
 
             let proximity = Math.max(0, 1 - dist / maxDist);
-            proximity = Math.pow(proximity, 2); // Non-linear response
+            proximity = Math.pow(proximity, 2);
             state.proximity = proximity;
 
             signalFill.style.width = `${Math.floor(proximity * 100)}%`;
@@ -893,66 +815,37 @@
             if (proximity > 0.85) {
                 detectorStatus.textContent = 'SIGNAL: CRITICAL';
                 detectorStatus.style.color = '#ff0000';
-            } else if (proximity > 0.5) {
+            } else if (proximity > 0.4) {
                 detectorStatus.textContent = 'SIGNAL: STRONG';
                 detectorStatus.style.color = '#ffff00';
-            } else if (proximity > 0.2) {
+            } else {
                 detectorStatus.textContent = 'SIGNAL: WEAK';
                 detectorStatus.style.color = '#00ff00';
-            } else {
-                detectorStatus.textContent = 'SIGNAL: NONE';
-                detectorStatus.style.color = '#008800';
             }
 
-            // Audio Bleeps based on proximity when using detector
             if (state.activeTool === 'detector' && state.gameStarted && !state.gameWon) {
                 if (Math.random() < proximity * 0.3) {
-                    const pitch = 300 + proximity * 1200;
-                    audioCtx.playBeep(pitch, 0.04);
+                    audioCtx.playBeep(300 + proximity * 1000);
                 }
             }
         }
 
-        // --- CHECK WIN CONDITION ---
         function checkWinCondition() {
             if (state.gameWon) return;
 
-            const dx = state.needleX - state.mouseX;
-            const dy = state.needleY - state.mouseY;
+            const dx = state.needleX - state.baconX;
+            const dy = state.needleY - state.baconY;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            // Must click or hold close to the actual needle position
-            if (state.isMouseDown && dist < CONFIG.NEEDLE_SIZE * 1.2) {
-                // Check if top hay is cleared enough around the needle
-                let coveringStraws = 0;
-                straws.forEach(s => {
-                    if (!s.removed && Math.abs(s.x - state.needleX) < 25 && Math.abs(s.y - state.needleY) < 25) {
-                        coveringStraws++;
-                    }
-                });
-
-                if (coveringStraws < 30) {
-                    triggerWin();
-                } else {
-                    showToast("You feel metal, but it's buried too deep! Clear more hay!");
-                }
+            if (state.isMouseDown && dist < CONFIG.NEEDLE_SIZE * 1.5) {
+                triggerWin();
             }
         }
 
         function triggerWin() {
             state.gameWon = true;
             audioCtx.playClink();
-
-            const finalTime = timerDisplay.textContent;
-            showModal("NEEDLE FOUND!", `Unbelievable! You successfully discovered the needle in <strong>${finalTime}</strong>.<br><br>Your sharp eyes and patience paid off!`);
-        }
-
-        function showToast(msg) {
-            toastEl.textContent = msg;
-            toastEl.classList.add('show');
-            setTimeout(() => {
-                toastEl.classList.remove('show');
-            }, 2500);
+            showModal("NEEDLE FOUND!", `Great job! Your Bacon character found the hidden needle in <strong>${timerDisplay.textContent}</strong>!`);
         }
 
         function showModal(title, text) {
@@ -961,25 +854,21 @@
             modalOverlay.style.display = 'flex';
         }
 
-        // --- GAME LOOP & TIMERS ---
         function updateTimer() {
             if (!state.gameStarted || state.gameWon) return;
-
             state.elapsedTime = Date.now() - state.startTime;
             const totalSecs = Math.floor(state.elapsedTime / 1000);
             const mins = Math.floor(totalSecs / 60).toString().padStart(2, '0');
             const secs = (totalSecs % 60).toString().padStart(2, '0');
             const ms = Math.floor((state.elapsedTime % 1000) / 100);
-
             timerDisplay.textContent = `${mins}:${secs}.${ms}`;
         }
 
         function gameLoop() {
             if (!state.gameStarted) return;
-
             updateTimer();
             if (state.isMouseDown) {
-                applyToolEffect(state.mouseX, state.mouseY);
+                applyToolEffect(state.baconX, state.baconY);
             }
             updateDetector();
             checkWinCondition();
@@ -988,7 +877,6 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // --- EVENT LISTENERS ---
         const canvasWrapper = document.getElementById('canvas-wrapper');
 
         canvasWrapper.addEventListener('mousemove', (e) => {
@@ -1005,47 +893,32 @@
             }
         });
 
-        canvasWrapper.addEventListener('mouseleave', () => {
-            state.isMouseDown = false;
-            magnifierEl.style.display = 'none';
-        });
-
         canvasWrapper.addEventListener('mousedown', (e) => {
             if (e.button === 0) {
                 state.isMouseDown = true;
                 audioCtx.init();
-                applyToolEffect(state.mouseX, state.mouseY);
+                applyToolEffect(state.baconX, state.baconY);
             }
         });
 
-        window.addEventListener('mouseup', () => {
-            state.isMouseDown = false;
-        });
+        window.addEventListener('mouseup', () => { state.isMouseDown = false; });
 
-        // Tool Selection
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
                 const target = e.currentTarget;
                 target.classList.add('active');
                 state.activeTool = target.getAttribute('data-tool');
-
-                if (state.activeTool !== 'magnifier') {
-                    magnifierEl.style.display = 'none';
-                }
+                if (state.activeTool !== 'magnifier') magnifierEl.style.display = 'none';
             });
         });
 
-        // Sliders
-        const sizeSlider = document.getElementById('tool-size');
-        const sizeValDisplay = document.getElementById('tool-size-val');
-        sizeSlider.addEventListener('input', (e) => {
+        document.getElementById('tool-size').addEventListener('input', (e) => {
             state.toolSize = e.target.value;
-            sizeValDisplay.textContent = `${e.target.value}px`;
+            document.getElementById('tool-size-val').textContent = `${e.target.value}px`;
         });
 
-        const volSlider = document.getElementById('volume-control');
-        volSlider.addEventListener('input', (e) => {
+        document.getElementById('volume-control').addEventListener('input', (e) => {
             state.volume = e.target.value / 100;
         });
 
@@ -1054,7 +927,6 @@
             modalOverlay.style.display = 'none';
             initGame();
         });
-
     </script>
 </body>
 </html>
