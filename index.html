@@ -3,74 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Haystack Simulator 3D - Morning Search & Prison Trap</title>
-    
-    <!-- FAVICON GENERATOR CANVAS -->
-    <script>
-        (function generateFavicon() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            
-            // Sky Blue Morning Background
-            ctx.fillStyle = '#38bdf8';
-            ctx.beginPath();
-            ctx.arc(32, 32, 30, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Golden Morning Straw
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 3.5;
-            ctx.lineCap = 'round';
-            for (let i = 0; i < 16; i++) {
-                let angle = (i / 16) * Math.PI * 2;
-                let x1 = 32 + Math.cos(angle) * 5;
-                let y1 = 32 + Math.sin(angle) * 5;
-                let x2 = 32 + Math.cos(angle + 0.25) * 25;
-                let y2 = 32 + Math.sin(angle + 0.25) * 25;
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.stroke();
-            }
-
-            // Shiny Needle Highlight
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(14, 50);
-            ctx.lineTo(50, 14);
-            ctx.stroke();
-
-            const link = document.createElement('link');
-            link.rel = 'icon';
-            link.href = canvas.toDataURL('image/png');
-            document.head.appendChild(link);
-        })();
-    </script>
-
+    <title>Needle in a Haystack - Hyper-Realistic Edition</title>
     <style>
-        /* ==========================================================================
-           1. USER INTERFACE & CUTSCENE OVERLAY STYLES
-           ========================================================================== */
         * {
             box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
             margin: 0;
             padding: 0;
-            user-select: none;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #020617;
-            color: #f8fafc;
+            background-color: #050508;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        #render-canvas {
+        #canvas-container {
             width: 100%;
             height: 100%;
             position: absolute;
@@ -79,1468 +30,803 @@
             z-index: 1;
         }
 
-        #ui-layer {
+        /* Post-Processing Film Vignette Overlay */
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            background: radial-gradient(circle, transparent 50%, rgba(5, 5, 10, 0.85) 100%);
+        }
+
+        /* Minimalist Atmospheric Crosshair & HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            transition: all 0.1s ease;
+        }
+
+        #crosshair.active {
+            border-color: #ffaa00;
+            scale: 1.4;
+            background-color: rgba(255, 170, 0, 0.2);
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            color: #e2d1a6;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .hud-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .hud-subtitle {
+            font-size: 12px;
+            color: #a09070;
+            margin-top: 4px;
+        }
+
+        .hud-timer {
+            font-family: monospace;
+            font-size: 32px;
+            color: #f0cb6c;
+            background: rgba(15, 12, 8, 0.6);
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(240, 203, 108, 0.3);
+        }
+
+        .hud-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .sensor-panel {
+            background: rgba(15, 12, 8, 0.7);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            width: 280px;
+            backdrop-filter: blur(5px);
+        }
+
+        .sensor-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sensor-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(250, 250, 250, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sensor-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+            border-radius: 4px;
+            transition: width 0.15s ease-out, background-color 0.3s;
+        }
+
+        .controls-hint {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            line-height: 1.8;
+            text-align: right;
+        }
+
+        .controls-hint span {
+            color: #f0cb6c;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        /* Overlay Prompts */
+        #start-screen, #win-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 10;
-            pointer-events: none;
+            background: rgba(5, 5, 8, 0.92);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-            transition: opacity 0.5s ease;
-        }
-
-        /* Top Morning Status HUD */
-        .hud-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.82);
-            backdrop-filter: blur(12px);
-            padding: 12px 24px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-            pointer-events: auto;
-            color: #0f172a;
-        }
-
-        .brand-title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: #b45309;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stat-group {
-            display: flex;
-            gap: 12px;
-        }
-
-        .stat-card {
-            background: rgba(15, 23, 42, 0.06);
-            padding: 8px 16px;
-            border-radius: 12px;
-            font-size: 0.88rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #1e293b;
-        }
-
-        .stat-card .val {
-            color: #d97706;
-            font-family: monospace;
-            font-size: 1.05rem;
-        }
-
-        /* Bottom Left Morning Timer Panel */
-        #timer-card {
-            position: absolute;
-            bottom: 24px;
-            left: 24px;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(16px);
-            padding: 16px 22px;
-            border-radius: 16px;
-            border: 1px solid rgba(217, 119, 6, 0.4);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            pointer-events: auto;
-            min-width: 250px;
-            color: #0f172a;
-        }
-
-        .timer-title {
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #64748b;
-            font-weight: 800;
-        }
-
-        .timer-display {
-            font-family: monospace;
-            font-size: 2.1rem;
-            font-weight: 800;
-            color: #b45309;
-            letter-spacing: 1px;
-        }
-
-        .timer-subtext {
-            font-size: 0.72rem;
-            color: #dc2626;
-            font-weight: 700;
-        }
-
-        /* Signal Detector HUD */
-        #detector-hud {
-            position: absolute;
-            top: 85px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            padding: 10px 22px;
-            border-radius: 30px;
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            color: #0f172a;
-        }
-
-        #detector-hud.active { opacity: 1; }
-
-        .detector-readout {
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: #0284c7;
-            font-weight: 800;
-        }
-
-        .signal-bar-bg {
-            width: 180px;
-            height: 10px;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .signal-bar-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #dc2626, #d97706, #16a34a);
-            transition: width 0.08s linear;
-        }
-
-        /* Hotbar Container */
-        .hotbar-container {
-            align-self: center;
-            display: flex;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(16px);
-            padding: 10px 14px;
-            border-radius: 18px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
-            pointer-events: auto;
-        }
-
-        .hotbar-slot {
-            width: 62px;
-            height: 62px;
-            background: rgba(0, 0, 0, 0.04);
-            border-radius: 12px;
-            border: 2px solid rgba(0, 0, 0, 0.08);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .hotbar-slot:hover {
-            background: rgba(0, 0, 0, 0.08);
-            transform: translateY(-3px);
-        }
-
-        .hotbar-slot.active {
-            border-color: #d97706;
-            background: rgba(217, 119, 6, 0.15);
-            box-shadow: 0 0 16px rgba(217, 119, 6, 0.3);
-        }
-
-        .hotbar-slot .key-bind {
-            position: absolute;
-            top: 4px;
-            left: 6px;
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: #64748b;
-        }
-
-        .hotbar-slot .icon { font-size: 1.4rem; }
-        .hotbar-slot .label {
-            font-size: 0.6rem;
-            color: #334155;
-            margin-top: 2px;
-            font-weight: 700;
-        }
-
-        /* Action Prompts */
-        .context-prompt {
-            position: absolute;
-            bottom: 110px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #d97706;
-            color: #ffffff;
-            padding: 10px 24px;
-            border-radius: 24px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            box-shadow: 0 8px 24px rgba(217, 119, 6, 0.4);
-            display: none;
-            animation: pulse 1.4s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.05); }
-            100% { transform: translateX(-50%) scale(1); }
-        }
-
-        /* Market Side Drawer */
-        .market-btn {
-            position: absolute;
-            right: 20px;
-            top: 85px;
-            background: #0d9488;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 12px;
-            border: none;
-            font-weight: 700;
-            font-size: 0.88rem;
-            cursor: pointer;
-            pointer-events: auto;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-            transition: all 0.2s ease;
-        }
-
-        .market-btn:hover { background: #0f766e; transform: translateY(-2px); }
-
-        .drawer-panel {
-            position: absolute;
-            right: -450px;
-            top: 0;
-            width: 430px;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            z-index: 20;
-            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 28px 22px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            border-left: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: -20px 0 50px rgba(0, 0, 0, 0.2);
-            color: #0f172a;
-        }
-
-        .drawer-panel.open { right: 0; }
-
-        .drawer-header {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-            padding-bottom: 14px;
-        }
-
-        .drawer-header h2 { font-size: 1.2rem; color: #b45309; }
-        .close-drawer { background: transparent; border: none; color: #64748b; font-size: 1.8rem; cursor: pointer; }
-        .close-drawer:hover { color: #000; }
-
-        .upgrades-list {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-right: 4px;
-        }
-
-        .upg-card {
-            background: rgba(0, 0, 0, 0.03);
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .upg-card-head { display: flex; justify-content: space-between; align-items: center; }
-        .upg-card-head h4 { color: #b45309; font-size: 0.92rem; }
-        .upg-card-head .lvl { background: #0d9488; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
-        .upg-desc { font-size: 0.78rem; color: #475569; line-height: 1.35; }
-
-        .btn-action {
-            background: #ea580c;
-            color: white;
-            border: none;
-            padding: 9px 12px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .btn-action:hover:not(:disabled) { background: #b45309; }
-        .btn-action:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
-
-        /* Floating Notifications */
-        #toast-container {
-            position: absolute;
-            top: 85px;
-            left: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 30;
-            pointer-events: none;
-        }
-
-        .toast-item {
-            background: rgba(15, 23, 42, 0.92);
-            color: #fff;
-            padding: 12px 18px;
-            border-radius: 10px;
-            border-left: 4px solid #f59e0b;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            font-size: 0.85rem;
-            animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards, toastOut 0.4s 3.6s forwards;
-        }
-
-        @keyframes toastIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
-
-        .world-text-float {
-            position: absolute;
-            font-weight: 900;
-            font-size: 1.15rem;
-            pointer-events: none;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-            animation: floatUpScreen 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            z-index: 15;
-        }
-
-        @keyframes floatUpScreen {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-70px) scale(1.15); opacity: 0; }
-        }
-
-        /* CUTSCENE CINEMATIC OVERLAY */
-        #cutscene-bars {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .cinematic-bar {
-            width: 100%;
-            height: 0;
-            background: #000;
-            transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        #cutscene-bars.active .cinematic-bar { height: 12%; }
-
-        #dialogue-box {
-            position: absolute;
-            bottom: 14%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            max-width: 800px;
-            background: rgba(15, 23, 42, 0.92);
-            border: 2px solid #f59e0b;
-            border-radius: 16px;
-            padding: 20px 28px;
-            color: #fff;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-            z-index: 60;
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .speaker-name {
-            font-weight: 900;
-            color: #f59e0b;
-            font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .dialogue-text {
-            font-size: 1.05rem;
-            line-height: 1.5;
-            color: #f1f5f9;
-        }
-
-        /* Prison Overlay Alert */
-        #prison-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
+            color: #f0cb6c;
             text-align: center;
-            padding: 40px;
         }
 
-        #prison-overlay h1 {
-            font-size: 3rem;
-            color: #ef4444;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+        #win-screen {
+            display: none;
+            background: rgba(5, 25, 10, 0.95);
         }
 
-        #prison-overlay p {
-            font-size: 1.2rem;
-            color: #cbd5e1;
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(240, 203, 108, 0.4);
+        }
+
+        p {
+            font-size: 16px;
+            color: #cccccc;
             max-width: 600px;
+            margin-bottom: 25px;
             line-height: 1.6;
         }
 
-        #prison-overlay button {
-            background: #ef4444;
-            color: white;
+        .btn {
+            background: linear-gradient(135deg, #f0cb6c 0%, #c8963e 100%);
             border: none;
-            padding: 14px 28px;
-            font-size: 1.1rem;
-            font-weight: 800;
-            border-radius: 12px;
+            padding: 15px 40px;
+            color: #111;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-radius: 30px;
             cursor: pointer;
-            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 10px 25px rgba(240, 203, 108, 0.3);
             transition: all 0.2s ease;
+            pointer-events: auto;
         }
 
-        #prison-overlay button:hover {
-            background: #dc2626;
-            transform: scale(1.05);
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(240, 203, 108, 0.5);
+            background: linear-gradient(135deg, #fbd87f 0%, #d9a34a 100%);
+        }
+
+        /* Audio Indicator */
+        #audio-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 12px;
+            color: #666;
+            z-index: 4;
         }
     </style>
 
-    <!-- THREE.JS CDN -->
+    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
 
-    <!-- RENDER CANVAS -->
-    <div id="render-canvas"></div>
+    <div id="canvas-container"></div>
+    <div id="vignette"></div>
 
-    <!-- UI LAYER -->
-    <div id="ui-layer">
+    <div id="hud">
         <div class="hud-header">
-            <div class="brand-title">🌅 Haystack Simulator - Morning Edition</div>
-            <div class="stat-group">
-                <div class="stat-card">🌾 Straw: <span id="val-hay" class="val">0</span></div>
-                <div class="stat-card">🪙 Coins: <span id="val-coins" class="val">0</span></div>
-                <div class="stat-card">🪡 Needles: <span id="val-needles" class="val">0</span></div>
+            <div>
+                <div class="hud-title">The Needle in the Haystack</div>
+                <div class="hud-subtitle">Search depth level: Hard (Estimated 30-60 Mins)</div>
             </div>
+            <div class="hud-timer" id="timer">00:00:00</div>
         </div>
 
-        <div id="detector-hud">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size: 0.85rem; font-weight: 800;">📡 RADAR SIGNAL</span>
-                <span id="detector-dist" class="detector-readout">0.000000m</span>
-            </div>
-            <div class="signal-bar-bg">
-                <div class="signal-bar-fill" id="signal-bar"></div>
-            </div>
-        </div>
+        <div id="crosshair"></div>
 
-        <button class="market-btn" onclick="toggleDrawer()">🛒 Market & Upgrades</button>
-
-        <div class="context-prompt" id="context-prompt">Press [E] or [Space] to Search Haystack</div>
-
-        <div id="timer-card">
-            <div class="timer-title">⏱️ SEARCH DURATION</div>
-            <div class="timer-display" id="timer-display">00:00:00</div>
-            <div class="timer-subtext">ULTRA HARD MODE: ~1-30 HRS SEARCH</div>
-        </div>
-
-        <div class="hotbar-container">
-            <div class="hotbar-slot active" id="slot-1" onclick="selectSlot(1)">
-                <span class="key-bind">1</span>
-                <span class="icon">🧹</span>
-                <span class="label">Hands/Fork</span>
+        <div class="hud-bottom">
+            <div class="sensor-panel">
+                <div class="sensor-label">
+                    <span>Proximity Resonance</span>
+                    <span id="sensor-value">0%</span>
+                </div>
+                <div class="sensor-bar-bg">
+                    <div class="sensor-bar-fill" id="sensor-fill"></div>
+                </div>
             </div>
-            <div class="hotbar-slot" id="slot-2" onclick="selectSlot(2)">
-                <span class="key-bind">2</span>
-                <span class="icon">🧺</span>
-                <span class="label">Sifter</span>
-            </div>
-            <div class="hotbar-slot" id="slot-3" onclick="selectSlot(3)">
-                <span class="key-bind">3</span>
-                <span class="icon">📡</span>
-                <span class="label">Detector</span>
-            </div>
-            <div class="hotbar-slot" id="slot-4" onclick="selectSlot(4)">
-                <span class="key-bind">4</span>
-                <span class="icon">🧲</span>
-                <span class="label">Magnet</span>
+
+            <div class="controls-hint">
+                [<span>WASD</span>] Move Hand/Fork Around Stacks<br>
+                [<span>L-Click</span>] Fork Dig & Lift Straw Layers<br>
+                [<span>R-Click</span>] Sift Through Deep Debris<br>
+                [<span>ESC</span>] Pause / Release Cursor
             </div>
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATIONS -->
-    <div id="toast-container"></div>
-
-    <!-- MARKET DRAWER -->
-    <div class="drawer-panel" id="drawer-panel">
-        <div class="drawer-header">
-            <h2>Farmer's Market & Upgrades</h2>
-            <button class="close-drawer" onclick="toggleDrawer()">&times;</button>
-        </div>
-
-        <div style="background: rgba(0, 0, 0, 0.03); padding: 14px; border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.06);">
-            <h3 style="color:#0d9488; font-size:0.95rem; margin-bottom:4px;">🧑‍🌾 Trade Raw Straw</h3>
-            <p style="font-size:0.78rem; color:#64748b; margin-bottom:10px;">Sell straw for gold coins. Rate: 1 Straw = 1 Coin.</p>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-action" style="flex:1;" onclick="sellHay(1)">Sell 1</button>
-                <button class="btn-action" style="flex:1;" onclick="sellHay('half')">Sell 50%</button>
-                <button class="btn-action" style="flex:1; background:#0d9488;" onclick="sellHay('all')">Sell All</button>
-            </div>
-        </div>
-
-        <h3 style="font-size: 0.95rem; color:#b45309; margin-top: 6px;">Equipment & Tools</h3>
-        <div class="upgrades-list" id="upgrades-list"></div>
+    <!-- Start Overlay -->
+    <div id="start-screen">
+        <h1>NEEDLE & HAYSTACK</h1>
+        <p>A hyper-realistic survival search simulation. Somewhere buried within <b>120,000 cubic feet of dense, packed straw</b> lies a single polished silver needle.<br><br>Use your Pitchfork to dig away thick layers of hay. Keep your eyes sharp for a tiny metallic glint, or listen closely for proximity resonance.</p>
+        <button class="btn" id="start-btn">BEGIN SEARCH</button>
     </div>
 
-    <!-- CUTSCENE CINEMATIC OVERLAYS -->
-    <div id="cutscene-bars">
-        <div class="cinematic-bar"></div>
-        <div class="cinematic-bar"></div>
+    <!-- Victory Screen -->
+    <div id="win-screen">
+        <h1>NEEDLE FOUND!</h1>
+        <p>Incredible patience! You successfully recovered the silver needle buried inside the colossal haystack.</p>
+        <p id="final-time-text">Total Search Time: 34 minutes 12 seconds</p>
+        <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
     </div>
 
-    <div id="dialogue-box">
-        <div class="speaker-name" id="dialogue-speaker">Farmer Jack</div>
-        <div class="dialogue-text" id="dialogue-text">...</div>
-    </div>
-
-    <!-- PRISON OVERLAY -->
-    <div id="prison-overlay">
-        <h1>🔒 TRAPPED IN PRISON!</h1>
-        <p>Farmer Jack took the shiny needle and locked you inside his hidden stone dungeon! He will use your hard work to rule the countryside...</p>
-        <button onclick="location.reload()">Try Escape (Restart Game)</button>
-    </div>
-
-    <!-- MAIN ENGINE SCRIPT -->
     <script>
-        /* ==========================================================================
-           2. AUDIO SYNTHESIZER
-           ========================================================================== */
-        class AudioSynth {
-            constructor() { this.ctx = null; }
-
-            init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-            }
-
-            playRustle() {
-                this.init();
-                let bufferSize = this.ctx.sampleRate * 0.12;
-                let buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                let data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-                let noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-
-                let filter = this.ctx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(900 + Math.random() * 500, this.ctx.currentTime);
-                filter.Q.setValueAtTime(3.5, this.ctx.currentTime);
-
-                let gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start();
-            }
-
-            playBeep(pitchRatio = 1.0) {
-                this.init();
-                let osc = this.ctx.createOscillator();
-                let gain = this.ctx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(550 * pitchRatio, this.ctx.currentTime);
-
-                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.07);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.07);
-            }
-
-            playNeedleFound() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
-                notes.forEach((freq, idx) => {
-                    let osc = this.ctx.createOscillator();
-                    let gain = this.ctx.createGain();
-
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.09);
-
-                    gain.gain.setValueAtTime(0.3, now + idx * 0.09);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.35);
-
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-
-                    osc.start(now + idx * 0.09);
-                    osc.stop(now + idx * 0.09 + 0.35);
-                });
-            }
-
-            playSlamSound() {
-                this.init();
-                let osc = this.ctx.createOscillator();
-                let gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.4);
-
-                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.4);
-            }
-
-            playCoin() {
-                this.init();
-                const now = this.ctx.currentTime;
-                let osc = this.ctx.createOscillator();
-                let gain = this.ctx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(987.77, now);
-                osc.frequency.setValueAtTime(1318.51, now + 0.07);
-
-                gain.gain.setValueAtTime(0.16, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-
-                osc.start();
-                osc.stop(now + 0.24);
-            }
-        }
-
-        const audio = new AudioSynth();
-
-        /* ==========================================================================
-           3. GAME DATA STATE
-           ========================================================================== */
-        let state = {
-            hay: 0,
-            coins: 0,
-            needles: 0,
-            activeSlot: 1,
-            searchPower: 1,
-            autoHaySec: 0,
-            autoSellSec: 0,
-
-            // Ultra-Hard Discovery Collision Radius
-            baseSearchRadius: 0.008,
-            needleSearchRadius: 0.008,
-
-            searchStartTime: null,
-            elapsedSeconds: 0,
-            isCutsceneActive: false,
-
-            upgrades: {
-                pitchfork: { count: 0, cost: 30, baseCost: 30, power: 1, name: "Steel Pitchfork", desc: "+1 Straw gathered per dig action." },
-                sifter: { count: 0, cost: 120, baseCost: 120, power: 0.004, name: "Micro Mesh Basket", desc: "Slightly expands search collision reach." },
-                detector: { count: 0, cost: 300, baseCost: 300, power: 1, name: "Pulse Radar", desc: "Unlocks real-time 6-decimal distance tracking." },
-                magnet: { count: 0, cost: 900, baseCost: 900, power: 0.008, name: "Neodymium Magnet", desc: "Pulls hidden metals towards player." },
-                helper: { count: 0, cost: 400, baseCost: 400, power: 2, name: "Farmhand Helper", desc: "Passively collects 2 Straw every second." },
-                trader: { count: 0, cost: 1200, baseCost: 1200, power: 5, name: "Merchant Contract", desc: "Automatically sells 5 Straw per second." }
-            }
-        };
-
-        /* ==========================================================================
-           4. THREE.JS MORNING ENVIRONMENT & PRISON CELL
-           ========================================================================== */
-        let scene, camera, renderer;
-        let playerGroup, playerBody, pitchforkTool, heldNeedleMesh;
-        let haystackGroup, strawInstancedMesh;
-        let hiddenNeedleMesh;
-        let farmerNPCGroup, prisonCellGroup, prisonBarsGroup;
-        let sunLight, skyMesh;
+        // --- GAME PARAMETERS & GLOBAL VARIABLES ---
+        let scene, camera, renderer, controls;
+        let pitchforkGroup, pitchforkFork, pitchforkShaft;
+        let haystackGroup, needleMesh;
+        let particlesSystem;
         let clock = new THREE.Clock();
+        
+        // Game State
+        let gameStarted = false;
+        let gameWon = false;
+        let startTime = 0;
+        let elapsedTime = 0;
+        
+        // Needle Properties (Extremely small, deep inside)
+        const needlePosition = new THREE.Vector3(
+            (Math.random() - 0.5) * 4.5,
+            0.4 + Math.random() * 1.2,
+            (Math.random() - 0.5) * 4.5
+        );
+        
+        // Straw Mesh Array for interactive digging
+        let strawMeshes = [];
+        let debrisParticles = [];
+        
+        // Animation Swag / Sway
+        let moveSwayX = 0, moveSwayY = 0;
+        let forkAnimTime = 0;
+        let isDigging = false;
+        let isSifting = false;
 
-        const STRAW_COUNT = 10000;
-        const HAYSTACK_CENTER = new THREE.Vector3(0, 0, 0);
-        const HAYSTACK_RADIUS = 14.0;
-        const HAYSTACK_HEIGHT = 8.5;
+        // Sound System (Synthesized Web Audio API)
+        let audioCtx, beepOsc, beepGain;
+        let lastBeepTime = 0;
 
-        let needlePosition = new THREE.Vector3();
+        // HTML Elements
+        const timerEl = document.getElementById('timer');
+        const sensorFillEl = document.getElementById('sensor-fill');
+        const sensorValueEl = document.getElementById('sensor-value');
+        const startScreen = document.getElementById('start-screen');
+        const winScreen = document.getElementById('win-screen');
+        const startBtn = document.getElementById('start-btn');
+        const crosshair = document.getElementById('crosshair');
 
-        const LOCATIONS = {
-            FARMER: new THREE.Vector3(25, 0, -20),
-            PRISON: new THREE.Vector3(-40, 0, -40)
-        };
-
-        const keys = { w: false, a: false, s: false, d: false };
-        let playerPos = new THREE.Vector3(0, 0, 20);
-
-        function init3D() {
-            const container = document.getElementById('render-canvas');
-
+        // --- INIT THREE.JS SCENE ---
+        function init() {
+            // Scene Setup
             scene = new THREE.Scene();
-            
-            // MORNING SKY GRADIENT & ATMOSPHERE
-            scene.background = new THREE.Color(0xbae6fd); // Bright morning sky
-            scene.fog = new THREE.FogExp2(0xe0f2fe, 0.008);
+            scene.background = new THREE.Color(0x0a0c10);
+            scene.fog = new THREE.FogExp2(0x0a0c10, 0.035);
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Camera Setup
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.05, 100);
+            camera.position.set(0, 1.7, 5.5);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // WebGL Renderer Setup (Enhanced Visual Quality)
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            container.appendChild(renderer.domElement);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // MORNING LIGHTING (GOLDEN SUNRISE)
-            const ambient = new THREE.AmbientLight(0xffedd5, 0.75); // Warm morning ambient
-            scene.add(ambient);
+            // Pointer Lock Controls (FPS First Person Camera)
+            controls = new THREE.PointerLockControls(camera, renderer.domElement);
 
-            sunLight = new THREE.DirectionalLight(0xfde047, 1.2); // Low morning sun
-            sunLight.position.set(60, 35, 45);
-            sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 180;
-            const d = 60;
-            sunLight.shadow.camera.left = -d;
-            sunLight.shadow.camera.right = d;
-            sunLight.shadow.camera.top = d;
-            sunLight.shadow.camera.bottom = -d;
-            scene.add(sunLight);
+            startBtn.addEventListener('click', () => {
+                controls.lock();
+            });
 
-            // MORNING SUN MESH
-            const sunGeo = new THREE.SphereGeometry(6, 32, 32);
-            const sunMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-            const sunMesh = new THREE.Mesh(sunGeo, sunMat);
-            sunMesh.position.copy(sunLight.position).multiplyScalar(2);
-            scene.add(sunMesh);
+            controls.addEventListener('lock', () => {
+                startScreen.style.display = 'none';
+                if (!gameStarted) {
+                    gameStarted = true;
+                    startTime = Date.now();
+                    initAudio();
+                }
+            });
 
-            // CONSTRUCT WORLD
-            buildTerrain();
-            buildVolumetricHaystack();
-            spawnRandomHiddenNeedle();
-            buildPlayerCharacter();
-            buildFarmerNPC();
-            buildPrisonDungeon();
+            controls.addEventListener('unlock', () => {
+                if (!gameWon) {
+                    startScreen.style.display = 'flex';
+                }
+            });
 
+            // Lighting Setup
+            setupLighting();
+
+            // Environment & Barn Floor
+            createEnvironment();
+
+            // The Pitchfork (Player Hand Viewmodel)
+            createPitchforkHand();
+
+            // Massive Dense Haystack Generator
+            createHaystack();
+
+            // Hidden Needle
+            createNeedle();
+
+            // Atmospheric Dust & Straw Particles
+            createDustParticles();
+
+            // Event Listeners
             window.addEventListener('resize', onWindowResize);
-            window.addEventListener('keydown', (e) => handleKey(e, true));
-            window.addEventListener('keyup', (e) => handleKey(e, false));
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
 
-            state.searchStartTime = Date.now();
-
-            renderUpgradesUI();
-            updateUI();
-
+            // Start Main Game Loop
             animate();
         }
 
-        /* ==========================================================================
-           5. MORNING MAP & PRISON CONSTRUCTORS
-           ========================================================================== */
+        // --- HIGH QUALITY LIGHTING ---
+        function setupLighting() {
+            // Ambient Moon/Barn Light
+            const ambient = new THREE.AmbientLight(0xd4e3ff, 0.25);
+            scene.add(ambient);
 
-        function buildTerrain() {
-            // Bright Morning Dew Grass
-            const groundGeo = new THREE.PlaneGeometry(280, 280, 32, 32);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
+            // Key Warm Spotlight (Sunlight through Barn Roof/Window)
+            const mainLight = new THREE.SpotLight(0xfffaed, 8.0);
+            mainLight.position.set(6, 12, 4);
+            mainLight.angle = Math.PI / 4;
+            mainLight.penumbra = 0.8;
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            mainLight.shadow.bias = -0.0001;
+            scene.add(mainLight);
 
-            // Fence Ring
-            for (let i = 0; i < 36; i++) {
-                let angle = (i / 36) * Math.PI * 2;
-                let r = 52;
-                let x = Math.cos(angle) * r;
-                let z = Math.sin(angle) * r;
+            // Warm Rim Bounce Light
+            const bounceLight = new THREE.PointLight(0xffa500, 2.5, 12);
+            bounceLight.position.set(-4, 2, -3);
+            scene.add(bounceLight);
 
-                const postGeo = new THREE.BoxGeometry(0.5, 2.6, 0.5);
-                const postMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
-                const post = new THREE.Mesh(postGeo, postMat);
-                post.position.set(x, 1.3, z);
-                post.castShadow = true;
-                scene.add(post);
-            }
+            // Soft Fill Light near player
+            const playerFill = new THREE.PointLight(0xffeedd, 1.2, 8);
+            playerFill.position.set(0, 3, 2);
+            scene.add(playerFill);
         }
 
-        function buildVolumetricHaystack() {
-            haystackGroup = new THREE.Group();
+        // --- ENVIRONMENT & BARN SCENE ---
+        function createEnvironment() {
+            // Ground Texture / Floor Grid Pattern
+            const floorGeo = new THREE.PlaneGeometry(30, 30);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x18130e,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
 
-            const domeGeo = new THREE.SphereGeometry(HAYSTACK_RADIUS * 0.9, 20, 16);
-            domeGeo.scale(1.0, HAYSTACK_HEIGHT / HAYSTACK_RADIUS, 1.0);
-            const domeMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.95 });
-            const domeCore = new THREE.Mesh(domeGeo, domeMat);
-            domeCore.position.y = 0.2;
-            domeCore.castShadow = true;
-            domeCore.receiveShadow = true;
-            haystackGroup.add(domeCore);
+            // Wooden Barn Walls
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x120d09, roughness: 0.95 });
+            
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 15), wallMat);
+            backWall.position.set(0, 7.5, -10);
+            scene.add(backWall);
 
-            const strawGeo = new THREE.ConeGeometry(0.04, 1.5, 4);
-            const strawMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.8, metalness: 0.05 });
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 15), wallMat);
+            leftWall.position.set(-10, 7.5, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            scene.add(leftWall);
+        }
 
-            strawInstancedMesh = new THREE.InstancedMesh(strawGeo, strawMat, STRAW_COUNT);
-            strawInstancedMesh.castShadow = true;
-            strawInstancedMesh.receiveShadow = true;
+        // --- PITCHFORK (FIRST PERSON HAND VIEWMODEL) ---
+        function createPitchforkHand() {
+            pitchforkGroup = new THREE.Group();
 
-            const dummy = new THREE.Object3D();
+            // Materials
+            const woodMat = new THREE.MeshStandardMaterial({
+                color: 0x5c4033,
+                roughness: 0.7,
+                metalness: 0.1
+            });
 
-            for (let i = 0; i < STRAW_COUNT; i++) {
-                let u = Math.random();
-                let v = Math.random();
-                let theta = u * 2.0 * Math.PI;
-                let phi = Math.acos(2.0 * v - 1.0);
+            const ironMat = new THREE.MeshStandardMaterial({
+                color: 0x888888,
+                roughness: 0.35,
+                metalness: 0.85
+            });
 
-                let r = Math.cbrt(Math.random()) * HAYSTACK_RADIUS;
-                let x = r * Math.sin(phi) * Math.cos(theta);
-                let z = r * Math.sin(phi) * Math.sin(theta);
-                let y = Math.abs(r * Math.cos(phi)) * (HAYSTACK_HEIGHT / HAYSTACK_RADIUS);
+            // Wooden Shaft
+            const shaftGeo = new THREE.CylinderGeometry(0.02, 0.022, 1.8, 12);
+            pitchforkShaft = new THREE.Mesh(shaftGeo, woodMat);
+            pitchforkShaft.rotation.x = Math.PI / 3;
+            pitchforkShaft.position.set(0, -0.4, -0.4);
+            pitchforkShaft.castShadow = true;
+            pitchforkGroup.add(pitchforkShaft);
 
-                dummy.position.set(x, y, z);
-                dummy.rotation.x = (Math.random() - 0.5) * Math.PI;
-                dummy.rotation.y = Math.random() * Math.PI * 2;
-                dummy.rotation.z = (Math.random() - 0.5) * Math.PI;
+            // Iron Fork Base
+            const forkBaseGeo = new THREE.BoxGeometry(0.28, 0.03, 0.03);
+            const forkBase = new THREE.Mesh(forkBaseGeo, ironMat);
+            forkBase.position.set(0, 0.35, -1.05);
+            forkBase.rotation.x = Math.PI / 6;
+            pitchforkGroup.add(forkBase);
 
-                let s = 0.7 + Math.random() * 0.7;
-                dummy.scale.set(s, s, s);
-
-                dummy.updateMatrix();
-                strawInstancedMesh.setMatrixAt(i, dummy.matrix);
+            // 4 Sharp Prongs (Fork Teeth)
+            for (let i = -0.12; i <= 0.12; i += 0.08) {
+                const prongGeo = new THREE.ConeGeometry(0.012, 0.45, 8);
+                const prong = new THREE.Mesh(prongGeo, ironMat);
+                prong.position.set(i, 0.48, -1.22);
+                prong.rotation.x = -Math.PI / 3;
+                prong.castShadow = true;
+                pitchforkGroup.add(prong);
             }
 
-            strawInstancedMesh.instanceMatrix.needsUpdate = true;
-            haystackGroup.add(strawInstancedMesh);
-            haystackGroup.position.copy(HAYSTACK_CENTER);
+            // Position Pitchfork relative to Camera
+            pitchforkGroup.position.set(0.35, -0.4, -0.5);
+            camera.add(pitchforkGroup);
+            scene.add(camera);
+        }
+
+        // --- HIGH DENSITY HAYSTACK GENERATION ---
+        function createHaystack() {
+            haystackGroup = new THREE.Group();
+
+            // Dynamic Straw Colors for Hyper-Realism
+            const strawColors = [0xd4b26f, 0xc29b47, 0xe2c482, 0x8f6d2f, 0xb88d3b];
+            const baseMaterials = strawColors.map(col => new THREE.MeshStandardMaterial({
+                color: col,
+                roughness: 0.85,
+                metalness: 0.05
+            }));
+
+            // Instantiate thousands of volumetric straw bundles
+            const strawGeo = new THREE.CylinderGeometry(0.012, 0.018, 0.9, 5);
+
+            // Generate main volumetric pile shape
+            const totalStrawBundles = 1800; // Scaled for high performance & density
+            
+            for (let i = 0; i < totalStrawBundles; i++) {
+                const mat = baseMaterials[Math.floor(Math.random() * baseMaterials.length)];
+                const straw = new THREE.Mesh(strawGeo, mat);
+
+                // Cluster distribution (Dome / Bell curve shape)
+                const radius = Math.pow(Math.random(), 0.6) * 4.2;
+                const angle = Math.random() * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                // Height based on distance from center
+                const maxHeight = Math.max(0.2, 2.6 - (radius * 0.55));
+                const y = Math.random() * maxHeight;
+
+                straw.position.set(x, y, z);
+
+                // Random straw strand orientation angles
+                straw.rotation.x = Math.random() * Math.PI;
+                straw.rotation.y = Math.random() * Math.PI;
+                straw.rotation.z = Math.random() * Math.PI;
+
+                straw.castShadow = (i % 3 === 0);
+                straw.receiveShadow = (i % 3 === 0);
+
+                straw.userData = { originalY: y, depthLayer: y, isRemoved: false };
+
+                haystackGroup.add(straw);
+                strawMeshes.push(straw);
+            }
+
             scene.add(haystackGroup);
         }
 
-        function spawnRandomHiddenNeedle() {
-            if (hiddenNeedleMesh) scene.remove(hiddenNeedleMesh);
-
-            let r = (0.25 + Math.random() * 0.7) * HAYSTACK_RADIUS;
-            let angle = Math.random() * Math.PI * 2;
-            let x = Math.cos(angle) * r;
-            let z = Math.sin(angle) * r;
-            let y = 0.2 + Math.random() * (HAYSTACK_HEIGHT * 0.65);
-
-            needlePosition.set(x, y, z);
-
-            const needleGroup = new THREE.Group();
-            const bodyGeo = new THREE.CylinderGeometry(0.01, 0.02, 1.2, 12);
+        // --- THE NEEDLE (MICRO OBJECT BURIED DEEP) ---
+        function createNeedle() {
+            const needleGeo = new THREE.CylinderGeometry(0.003, 0.001, 0.12, 12);
             const needleMat = new THREE.MeshStandardMaterial({
                 color: 0xffffff,
                 metalness: 0.98,
-                roughness: 0.05,
-                emissive: 0x38bdf8,
-                emissiveIntensity: 0.5
+                roughness: 0.1,
+                envMapIntensity: 2.5
             });
-            const needleBody = new THREE.Mesh(bodyGeo, needleMat);
-            needleGroup.add(needleBody);
 
-            const eyeGeo = new THREE.TorusGeometry(0.035, 0.008, 8, 16);
-            const eyeMesh = new THREE.Mesh(eyeGeo, needleMat);
-            eyeMesh.position.y = 0.58;
-            needleGroup.add(eyeMesh);
+            needleMesh = new THREE.Mesh(needleGeo, needleMat);
+            needleMesh.position.copy(needlePosition);
+            needleMesh.rotation.z = Math.PI / 3;
+            needleMesh.rotation.x = Math.PI / 5;
+            
+            // Subtle point light attached to needle to make it faintly glint when uncovered
+            const needleGlint = new THREE.PointLight(0xffffff, 0.8, 0.4);
+            needleMesh.add(needleGlint);
 
-            needleGroup.position.copy(needlePosition);
-            needleGroup.rotation.z = Math.PI / 4;
-            needleGroup.rotation.x = Math.PI / 5;
-
-            hiddenNeedleMesh = needleGroup;
-            hiddenNeedleMesh.visible = false;
-            scene.add(hiddenNeedleMesh);
+            scene.add(needleMesh);
         }
 
-        function buildPlayerCharacter() {
-            playerGroup = new THREE.Group();
+        // --- DUST PARTICLES ---
+        function createDustParticles() {
+            const particleCount = 400;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
 
-            const torsoGeo = new THREE.CylinderGeometry(0.45, 0.4, 1.3, 8);
-            const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
-            playerBody = new THREE.Mesh(torsoGeo, torsoMat);
-            playerBody.position.y = 1.0;
-            playerBody.castShadow = true;
-            playerGroup.add(playerBody);
-
-            const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xfde047 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.9;
-            head.castShadow = true;
-            playerGroup.add(head);
-
-            // Fork Tool
-            const forkGroup = new THREE.Group();
-            const shaftGeo = new THREE.CylinderGeometry(0.03, 0.03, 2.0);
-            const shaftMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
-            const shaft = new THREE.Mesh(shaftGeo, shaftMat);
-            forkGroup.add(shaft);
-
-            const prongsGeo = new THREE.BoxGeometry(0.35, 0.25, 0.04);
-            const prongsMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
-            const prongs = new THREE.Mesh(prongsGeo, prongsMat);
-            prongs.position.y = 1.0;
-            forkGroup.add(prongs);
-
-            forkGroup.position.set(0.5, 1.1, 0.2);
-            forkGroup.rotation.x = Math.PI / 6;
-            pitchforkTool = forkGroup;
-            playerGroup.add(pitchforkTool);
-
-            // Held Needle Mesh (Visible in cutscene)
-            const nGeo = new THREE.CylinderGeometry(0.015, 0.02, 1.0);
-            const nMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, emissive: 0x38bdf8 });
-            heldNeedleMesh = new THREE.Mesh(nGeo, nMat);
-            heldNeedleMesh.position.set(-0.4, 1.1, 0.4);
-            heldNeedleMesh.rotation.z = -Math.PI / 4;
-            heldNeedleMesh.visible = false;
-            playerGroup.add(heldNeedleMesh);
-
-            playerGroup.position.copy(playerPos);
-            scene.add(playerGroup);
-        }
-
-        function buildFarmerNPC() {
-            farmerNPCGroup = new THREE.Group();
-
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.4);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.0;
-            body.castShadow = true;
-            farmerNPCGroup.add(body);
-
-            const headGeo = new THREE.SphereGeometry(0.38);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xfde047 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.9;
-            farmerNPCGroup.add(head);
-
-            const tableGeo = new THREE.BoxGeometry(3.5, 1.1, 1.6);
-            const tableMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
-            const table = new THREE.Mesh(tableGeo, tableMat);
-            table.position.set(0, 0.55, 1.2);
-            table.castShadow = true;
-            farmerNPCGroup.add(table);
-
-            farmerNPCGroup.position.copy(LOCATIONS.FARMER);
-            scene.add(farmerNPCGroup);
-        }
-
-        function buildPrisonDungeon() {
-            prisonCellGroup = new THREE.Group();
-
-            // Dark Stone Dungeon Chamber
-            const floorGeo = new THREE.BoxGeometry(16, 0.4, 16);
-            const stoneMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
-            const floor = new THREE.Mesh(floorGeo, stoneMat);
-            floor.position.y = -0.2;
-            prisonCellGroup.add(floor);
-
-            const backWallGeo = new THREE.BoxGeometry(16, 8, 0.8);
-            const backWall = new THREE.Mesh(backWallGeo, stoneMat);
-            backWall.position.set(0, 4, -8);
-            prisonCellGroup.add(backWall);
-
-            const sideWall1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 8, 16), stoneMat);
-            sideWall1.position.set(-8, 4, 0);
-            prisonCellGroup.add(sideWall1);
-
-            const sideWall2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 8, 16), stoneMat);
-            sideWall2.position.set(8, 4, 0);
-            prisonCellGroup.add(sideWall2);
-
-            // Front Prison Bars Wall
-            prisonBarsGroup = new THREE.Group();
-            for (let x = -7; x <= 7; x += 1.2) {
-                const barGeo = new THREE.CylinderGeometry(0.08, 0.08, 8);
-                const barMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.95 });
-                const bar = new THREE.Mesh(barGeo, barMat);
-                bar.position.set(x, 4, 8);
-                prisonBarsGroup.add(bar);
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 15;
+                positions[i + 1] = Math.random() * 6;
+                positions[i + 2] = (Math.random() - 0.5) * 15;
             }
 
-            prisonCellGroup.add(prisonBarsGroup);
-            prisonCellGroup.position.copy(LOCATIONS.PRISON);
-            scene.add(prisonCellGroup);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xd4b26f,
+                size: 0.03,
+                transparent: true,
+                opacity: 0.4
+            });
+
+            particlesSystem = new THREE.Points(geometry, material);
+            scene.add(particlesSystem);
         }
 
-        /* ==========================================================================
-           6. CONTROLS & DIGGING ACTION
-           ========================================================================== */
-
-        function handleKey(e, isDown) {
-            if (state.isCutsceneActive) return;
-
-            const k = e.key.toLowerCase();
-            if (k === 'w') keys.w = isDown;
-            if (k === 'a') keys.a = isDown;
-            if (k === 's') keys.s = isDown;
-            if (k === 'd') keys.d = isDown;
-
-            if (k === '1') selectSlot(1);
-            if (k === '2') selectSlot(2);
-            if (k === '3') selectSlot(3);
-            if (k === '4') selectSlot(4);
-
-            if ((k === 'e' || k === ' ') && isDown) {
-                performContextAction();
+        // --- AUDIO SOUND SYSTEM ---
+        function initAudio() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('Web Audio API not supported.');
             }
         }
 
-        function selectSlot(slotNum) {
-            state.activeSlot = slotNum;
-            document.querySelectorAll('.hotbar-slot').forEach(el => el.classList.remove('active'));
-            document.getElementById(`slot-${slotNum}`).classList.add('active');
+        function playProximityBeep(frequency, volume) {
+            if (!audioCtx) return;
 
-            const detHud = document.getElementById('detector-hud');
-            if (slotNum === 3) detHud.classList.add('active');
-            else detHud.classList.remove('active');
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+            gain.gain.setValueAtTime(volume * 0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.09);
         }
 
-        function performContextAction() {
-            let distToHay = playerPos.distanceTo(HAYSTACK_CENTER);
-            let distToFarmer = playerPos.distanceTo(LOCATIONS.FARMER);
+        function playDigSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
 
-            if (distToHay <= HAYSTACK_RADIUS + 1.5) {
-                digHaystackAction();
-            } else if (distToFarmer <= 4.5) {
-                toggleDrawer();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        // --- INTERACTION & DIGGING MECHANICS ---
+        function onMouseDown(e) {
+            if (!controls.isLocked || gameWon) return;
+
+            if (e.button === 0) { // Left Click: Dig & Remove Top Layer
+                isDigging = true;
+                crosshair.classList.add('active');
+                performForkDig();
+            } else if (e.button === 2) { // Right Click: Sift / Spread Debris
+                isSifting = true;
+                performForkSift();
             }
         }
 
-        function digHaystackAction() {
-            pitchforkTool.rotation.x = Math.PI / 1.8;
-            setTimeout(() => pitchforkTool.rotation.x = Math.PI / 6, 180);
-
-            audio.playRustle();
-
-            let hayGained = state.searchPower;
-            state.hay += hayGained;
-
-            spawnScreenFloatText(`+${hayGained} Straw 🌾`, playerPos, "#f59e0b");
-
-            // Evaluate Ultra-Hard Collision Logic
-            let distToNeedle = playerPos.distanceTo(needlePosition);
-            let currentRadius = state.needleSearchRadius;
-
-            if (state.activeSlot === 2) currentRadius *= 1.8;
-            if (state.activeSlot === 4) currentRadius *= 2.5;
-
-            if (distToNeedle <= currentRadius) {
-                // NEEDLE DISCOVERED -> TRIGGER CINEMATIC CUTSCENE
-                state.needles++;
-                hiddenNeedleMesh.visible = false;
-                heldNeedleMesh.visible = true;
-
-                audio.playNeedleFound();
-
-                // Start Story Cutscene
-                startFarmerPrisonCutscene();
-            }
-
-            updateUI();
+        function onMouseUp() {
+            isDigging = false;
+            isSifting = false;
+            crosshair.classList.remove('active');
         }
 
-        function sellHay(amount) {
-            let toSell = 0;
-            if (amount === 'all') toSell = state.hay;
-            else if (amount === 'half') toSell = Math.floor(state.hay / 2);
-            else toSell = Math.min(state.hay, amount);
+        function performForkDig() {
+            playDigSound();
 
-            if (toSell > 0) {
-                state.hay -= toSell;
-                state.coins += toSell;
-                audio.playCoin();
-                spawnScreenFloatText(`+${toSell} Coins 🪙`, LOCATIONS.FARMER, "#0d9488");
-                showToast(`Sold ${toSell} Straw for ${toSell} Coins!`);
-                updateUI();
-            } else {
-                showToast("No Straw available to sell!");
-            }
-        }
+            // Raycast from center of camera
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
-        function formatTimer(totalSec) {
-            let hrs = Math.floor(totalSec / 3600);
-            let mins = Math.floor((totalSec % 3600) / 60);
-            let secs = totalSec % 60;
-
-            let hStr = hrs < 10 ? "0" + hrs : hrs;
-            let mStr = mins < 10 ? "0" + mins : mins;
-            let sStr = secs < 10 ? "0" + secs : secs;
-
-            return `${hStr}:${mStr}:${sStr}`;
-        }
-
-        /* ==========================================================================
-           7. CINEMATIC CUTSCENE: FARMER HANDOVER & PRISON TRAP
-           ========================================================================== */
-
-        function startFarmerPrisonCutscene() {
-            state.isCutsceneActive = true;
-
-            // Hide Game UI, Show Cinematic Letterbox
-            document.getElementById('ui-layer').style.opacity = '0';
-            document.getElementById('cutscene-bars').classList.add('active');
-
-            const dlg = document.getElementById('dialogue-box');
-            const dlgSpeaker = document.getElementById('dialogue-speaker');
-            const dlgText = document.getElementById('dialogue-text');
-
-            dlg.style.display = 'flex';
-
-            // Phase 1: Player walks to Farmer Jack
-            let cutsceneTimer = 0;
-            let cameraTargetPos = new THREE.Vector3();
-            let cameraLookTarget = new THREE.Vector3();
-
-            // Timeline Sequence
-            setTimeout(() => {
-                dlgSpeaker.innerText = "You";
-                dlgText.innerText = "Farmer Jack! I did it! I finally found the shiny needle in the haystack!";
-            }, 1000);
-
-            setTimeout(() => {
-                // Move Player to Farmer
-                playerPos.copy(LOCATIONS.FARMER).add(new THREE.Vector3(0, 0, 4.5));
-                playerGroup.position.copy(playerPos);
-                playerGroup.rotation.y = Math.PI;
-
-                dlgSpeaker.innerText = "Farmer Jack";
-                dlgText.innerText = "HAHAHA! Unbelievable! You actually spent all that time searching and found it!";
-            }, 4500);
-
-            setTimeout(() => {
-                dlgSpeaker.innerText = "Farmer Jack";
-                dlgText.innerText = "Hand it over to me... NOW!";
-                heldNeedleMesh.visible = false; // Give needle
-            }, 8500);
-
-            setTimeout(() => {
-                dlgSpeaker.innerText = "Farmer Jack";
-                dlgText.innerText = "Foolish wanderer! Did you really think I'd reward you? This needle holds ancient powers!";
-            }, 12500);
-
-            setTimeout(() => {
-                dlgSpeaker.innerText = "Farmer Jack";
-                dlgText.innerText = "Guards! Lock this intruder in the underground dungeon forever!";
-                audio.playSlamSound();
-            }, 16500);
-
-            // Phase 2: Teleport to Prison Cell
-            setTimeout(() => {
-                playerPos.copy(LOCATIONS.PRISON).add(new THREE.Vector3(0, 0, 0));
-                playerGroup.position.copy(playerPos);
-
-                dlgSpeaker.innerText = "Farmer Jack";
-                dlgText.innerText = "Enjoy your new home! You will never leave this prison cell!";
-            }, 19000);
-
-            // Phase 3: Final Prison Overlay Screen
-            setTimeout(() => {
-                document.getElementById('prison-overlay').style.display = 'flex';
-            }, 23000);
-        }
-
-        /* ==========================================================================
-           8. RENDERING LOOP
-           ========================================================================== */
-
-        let lastBeepTime = 0;
-        let lastPassiveSec = 0;
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            let delta = clock.getDelta();
-            let elapsed = clock.getElapsedTime();
-
-            if (state.searchStartTime && !state.isCutsceneActive) {
-                state.elapsedSeconds = Math.floor((Date.now() - state.searchStartTime) / 1000);
-                document.getElementById('timer-display').innerText = formatTimer(state.elapsedSeconds);
-            }
-
-            // Normal Camera & Physics (If not in Cutscene)
-            if (!state.isCutsceneActive) {
-                updatePlayerPhysics(delta);
-
-                camera.position.x = playerGroup.position.x;
-                camera.position.y = playerGroup.position.y + 11;
-                camera.position.z = playerGroup.position.z + 16;
-                camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
-            } else {
-                // Cinematic Dynamic Camera
-                if (playerPos.distanceTo(LOCATIONS.PRISON) > 10) {
-                    // Farmer Cutscene Cam
-                    camera.position.set(LOCATIONS.FARMER.x + 4, 3.5, LOCATIONS.FARMER.z + 8);
-                    camera.lookAt(LOCATIONS.FARMER.x, 2.0, LOCATIONS.FARMER.z);
-                } else {
-                    // Prison Dungeon Cam
-                    camera.position.set(LOCATIONS.PRISON.x, 3.5, LOCATIONS.PRISON.z + 12);
-                    camera.lookAt(LOCATIONS.PRISON.x, 2.0, LOCATIONS.PRISON.z);
-                }
-            }
-
-            if (playerPos.distanceTo(HAYSTACK_CENTER) < HAYSTACK_RADIUS) {
-                strawInstancedMesh.rotation.y = Math.sin(elapsed * 3) * 0.015;
-            }
-
-            updateMetalDetectorSignal(elapsed);
-            updateContextPrompts();
-
-            if (elapsed - lastPassiveSec >= 1.0) {
-                passiveIncomeTick();
-                lastPassiveSec = elapsed;
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        function updatePlayerPhysics(delta) {
-            let moveDir = new THREE.Vector3();
-
-            if (keys.w) moveDir.z -= 1;
-            if (keys.s) moveDir.z += 1;
-            if (keys.a) moveDir.x -= 1;
-            if (keys.d) moveDir.x += 1;
-
-            if (moveDir.length() > 0) {
-                moveDir.normalize();
-                let moveSpeed = 10.5;
-
-                if (playerPos.distanceTo(HAYSTACK_CENTER) < HAYSTACK_RADIUS) {
-                    moveSpeed = 4.2;
-                }
-
-                playerPos.x += moveDir.x * moveSpeed * delta;
-                playerPos.z += moveDir.z * moveSpeed * delta;
-
-                playerGroup.rotation.y = Math.atan2(moveDir.x, moveDir.z);
-                playerBody.position.y = 1.0 + Math.sin(clock.getElapsedTime() * 15) * 0.08;
-            } else {
-                playerBody.position.y = 1.0;
-            }
-
-            playerGroup.position.copy(playerPos);
-        }
-
-        function updateMetalDetectorSignal(elapsed) {
-            if (state.isCutsceneActive) return;
-
-            let distToNeedle = playerPos.distanceTo(needlePosition);
-            let maxDist = 30.0;
-            let signalRatio = Math.max(0, Math.min(1, 1 - (distToNeedle / maxDist)));
-
-            document.getElementById('signal-bar').style.width = `${(Math.pow(signalRatio, 2) * 100).toFixed(1)}%`;
-            document.getElementById('detector-dist').innerText = `${distToNeedle.toFixed(6)}m`;
-
-            if (state.activeSlot === 3 && signalRatio > 0.02) {
-                let beepInterval = 1.6 - (signalRatio * 1.48);
-                if (elapsed - lastBeepTime >= beepInterval) {
-                    audio.playBeep(0.7 + signalRatio * 0.95);
-                    lastBeepTime = elapsed;
-                }
-            }
-        }
-
-        function updateContextPrompts() {
-            if (state.isCutsceneActive) {
-                document.getElementById('context-prompt').style.display = 'none';
+            // Check if player is directly targeting the tiny needle!
+            const needleIntersect = raycaster.intersectObject(needleMesh);
+            if (needleIntersect.length > 0 && needleIntersect[0].distance < 3.2) {
+                triggerVictory();
                 return;
             }
 
-            const prompt = document.getElementById('context-prompt');
-            let distHay = playerPos.distanceTo(HAYSTACK_CENTER);
-            let distFarmer = playerPos.distanceTo(LOCATIONS.FARMER);
+            // Otherwise, interact with straw bundles
+            const intersects = raycaster.intersectObjects(strawMeshes);
 
-            if (distHay <= HAYSTACK_RADIUS + 1.5) {
-                prompt.style.display = 'block';
-                prompt.innerText = "Press [E] or [Space] to Search Haystack";
-            } else if (distFarmer <= 4.5) {
-                prompt.style.display = 'block';
-                prompt.innerText = "Press [E] or [Space] to Open Farmer Market";
-            } else {
-                prompt.style.display = 'none';
+            if (intersects.length > 0 && intersects[0].distance < 3.5) {
+                // Displace / lift nearby straw bundles
+                const hitPoint = intersects[0].point;
+
+                let removedCount = 0;
+                strawMeshes.forEach(straw => {
+                    if (!straw.userData.isRemoved) {
+                        const dist = straw.position.distanceTo(hitPoint);
+                        if (dist < 0.65) {
+                            // Move straw outwards/downwards (Dig effect)
+                            straw.position.y -= 0.4;
+                            straw.position.x += (Math.random() - 0.5) * 0.5;
+                            straw.position.z += (Math.random() - 0.5) * 0.5;
+
+                            if (straw.position.y < 0) {
+                                straw.visible = false;
+                                straw.userData.isRemoved = true;
+                            }
+                            removedCount++;
+                        }
+                    }
+                });
             }
         }
 
-        function passiveIncomeTick() {
-            if (state.isCutsceneActive) return;
+        function performForkSift() {
+            playDigSound();
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(strawMeshes);
 
-            if (state.autoHaySec > 0) {
-                state.hay += state.autoHaySec;
-            }
-
-            if (state.autoSellSec > 0 && state.hay > 0) {
-                let toSell = Math.min(state.hay, state.autoSellSec);
-                state.hay -= toSell;
-                state.coins += toSell;
-            }
-
-            updateUI();
-        }
-
-        /* ==========================================================================
-           9. UPGRADES & INTERFACE UI MANAGERS
-           ========================================================================== */
-
-        function buyUpgrade(key) {
-            let upg = state.upgrades[key];
-            if (state.coins >= upg.cost) {
-                state.coins -= upg.cost;
-                upg.count++;
-                upg.cost = Math.floor(upg.baseCost * Math.pow(1.26, upg.count));
-
-                recalculateStats();
-                renderUpgradesUI();
-                updateUI();
-                showToast(`Upgraded ${upg.name}!`);
-            } else {
-                showToast("Not enough Coins!");
+            if (intersects.length > 0 && intersects[0].distance < 3.5) {
+                const hitPoint = intersects[0].point;
+                strawMeshes.forEach(straw => {
+                    if (!straw.userData.isRemoved) {
+                        const dist = straw.position.distanceTo(hitPoint);
+                        if (dist < 0.9) {
+                            straw.rotation.y += Math.PI / 2;
+                            straw.position.x += (straw.position.x - hitPoint.x) * 0.3;
+                            straw.position.z += (straw.position.z - hitPoint.z) * 0.3;
+                        }
+                    }
+                });
             }
         }
 
-        function recalculateStats() {
-            state.searchPower = 1 + (state.upgrades.pitchfork.count * state.upgrades.pitchfork.power);
-            state.needleSearchRadius = state.baseSearchRadius + (state.upgrades.sifter.count * state.upgrades.sifter.power) + (state.upgrades.magnet.count * state.upgrades.magnet.power);
-            state.autoHaySec = (state.upgrades.helper.count * state.upgrades.helper.power);
-            state.autoSellSec = (state.upgrades.trader.count * state.upgrades.trader.power);
+        // --- VICTORY TRIGGER ---
+        function triggerVictory() {
+            gameWon = true;
+            controls.unlock();
+            
+            const totalSeconds = Math.floor((Date.now() - startTime) / 1000);
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            
+            document.getElementById('final-time-text').innerText = 
+                `Total Search Time: ${mins} minute(s) and ${secs} second(s)`;
+            
+            winScreen.style.display = 'flex';
         }
 
-        function updateUI() {
-            document.getElementById('val-hay').innerText = Math.floor(state.hay).toLocaleString();
-            document.getElementById('val-coins').innerText = Math.floor(state.coins).toLocaleString();
-            document.getElementById('val-needles').innerText = state.needles.toLocaleString();
-
-            for (let key in state.upgrades) {
-                let btn = document.getElementById(`upg-btn-${key}`);
-                if (btn) btn.disabled = state.coins < state.upgrades[key].cost;
-            }
-        }
-
-        function renderUpgradesUI() {
-            const list = document.getElementById('upgrades-list');
-            list.innerHTML = '';
-
-            for (let key in state.upgrades) {
-                let upg = state.upgrades[key];
-                let card = document.createElement('div');
-                card.className = 'upg-card';
-                card.innerHTML = `
-                    <div class="upg-card-head">
-                        <h4>${upg.name}</h4>
-                        <span class="lvl">Lvl ${upg.count}</span>
-                    </div>
-                    <div class="upg-desc">${upg.desc}</div>
-                    <button class="btn-action" id="upg-btn-${key}" onclick="buyUpgrade('${key}')">
-                        <span>Upgrade</span>
-                        <span>🪙 ${upg.cost.toLocaleString()}</span>
-                    </button>
-                `;
-                list.appendChild(card);
-            }
-        }
-
-        function toggleDrawer() {
-            if (state.isCutsceneActive) return;
-            document.getElementById('drawer-panel').classList.toggle('open');
-        }
-
-        function showToast(msg) {
-            const container = document.getElementById('toast-container');
-            const item = document.createElement('div');
-            item.className = 'toast-item';
-            item.innerText = msg;
-            container.appendChild(item);
-
-            setTimeout(() => item.remove(), 4000);
-        }
-
-        function spawnScreenFloatText(text, worldPos, color) {
-            const el = document.createElement('div');
-            el.className = 'world-text-float';
-            el.innerText = text;
-            el.style.color = color;
-
-            const proj = worldPos.clone().add(new THREE.Vector3(0, 2.2, 0)).project(camera);
-            const x = (proj.x * .5 + .5) * window.innerWidth;
-            const y = (-(proj.y * .5) + .5) * window.innerHeight;
-
-            el.style.left = `${x}px`;
-            el.style.top = `${y}px`;
-            document.body.appendChild(el);
-
-            setTimeout(() => el.remove(), 1200);
-        }
-
+        // --- RESIZE HANDLER ---
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        window.onload = init3D;
+        // --- MAIN ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            if (gameStarted && !gameWon) {
+                // 1. Update Game Timer
+                elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                const hrs = Math.floor(elapsedTime / 3600).toString().padStart(2, '0');
+                const mins = Math.floor((elapsedTime % 3600) / 60).toString().padStart(2, '0');
+                const secs = (elapsedTime % 60).toString().padStart(2, '0');
+                timerEl.innerText = `${hrs}:${mins}:${secs}`;
+
+                // 2. Proximity Detector Logic
+                const forkPos = pitchforkGroup.getWorldPosition(new THREE.Vector3());
+                const distanceToNeedle = forkPos.distanceTo(needleMesh.position);
+
+                // Scaled precision detector (0 to 100%)
+                const maxSensorDist = 4.5;
+                let proximity = Math.max(0, 1 - (distanceToNeedle / maxSensorDist));
+                proximity = Math.pow(proximity, 2.5); // Exponential curve for pinpoint accuracy
+
+                const proximityPct = Math.floor(proximity * 100);
+                sensorFillEl.style.width = `${proximityPct}%`;
+                sensorValueEl.innerText = `${proximityPct}%`;
+
+                // Proximity Beep Audio Pulse
+                if (proximity > 0.15) {
+                    const beepInterval = 0.8 - (proximity * 0.72); // Faster beeps closer to needle
+                    if (time - lastBeepTime > beepInterval) {
+                        playProximityBeep(400 + (proximity * 600), proximity);
+                        lastBeepTime = time;
+                    }
+                }
+
+                // 3. Pitchfork Hand Animation & Sway
+                forkAnimTime += delta * 3;
+                
+                // Idle breathing sway
+                let targetSwayY = -0.4 + Math.sin(forkAnimTime * 0.8) * 0.015;
+                let targetSwayX = 0.35 + Math.cos(forkAnimTime * 0.5) * 0.01;
+
+                // Digging Action thrust
+                if (isDigging) {
+                    targetSwayY -= 0.15;
+                    pitchforkGroup.position.z = -0.7;
+                    pitchforkGroup.rotation.x = -0.2;
+                } else {
+                    pitchforkGroup.position.z = -0.5;
+                    pitchforkGroup.rotation.x = 0;
+                }
+
+                pitchforkGroup.position.x += (targetSwayX - pitchforkGroup.position.x) * 0.1;
+                pitchforkGroup.position.y += (targetSwayY - pitchforkGroup.position.y) * 0.1;
+
+                // 4. Animate Ambient Dust Particles
+                if (particlesSystem) {
+                    const positions = particlesSystem.geometry.attributes.position.array;
+                    for (let i = 1; i < positions.length; i += 3) {
+                        positions[i] -= delta * 0.05;
+                        if (positions[i] < 0) positions[i] = 6;
+                    }
+                    particlesSystem.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize on page load
+        window.onload = init;
     </script>
 </body>
 </html>
