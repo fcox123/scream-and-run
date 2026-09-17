@@ -3,47 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Haystack Simulator - Deep Search Mode</title>
-    <!-- DYNAMIC FAVICON GENERATOR -->
+    <title>Needle in a Haystack: Ultra Hard 3D Simulator</title>
+    
+    <!-- GENERATE DYNAMIC FAVICON VIA HTML5 CANVAS DATA URI -->
     <script>
         (function generateFavicon() {
             const canvas = document.createElement('canvas');
             canvas.width = 64;
             canvas.height = 64;
             const ctx = canvas.getContext('2d');
-
+            
             // Background Circle
-            ctx.fillStyle = '#1e293b';
+            ctx.fillStyle = '#0f172a';
             ctx.beginPath();
             ctx.arc(32, 32, 30, 0, Math.PI * 2);
             ctx.fill();
-
-            // Straw Bundle
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 4;
+            
+            // Golden Hay Straw Bundle
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 3.5;
             ctx.lineCap = 'round';
-            for (let i = 0; i < 16; i++) {
-                let angle = (i / 16) * Math.PI * 2;
-                let x1 = 32 + Math.cos(angle) * 4;
-                let y1 = 32 + Math.sin(angle) * 4;
-                let x2 = 32 + Math.cos(angle + 0.2) * 24;
-                let y2 = 32 + Math.sin(angle + 0.2) * 24;
+            for (let i = 0; i < 18; i++) {
+                let angle = (i / 18) * Math.PI * 2;
+                let x1 = 32 + Math.cos(angle) * 5;
+                let y1 = 32 + Math.sin(angle) * 5;
+                let x2 = 32 + Math.cos(angle + 0.25) * 25;
+                let y2 = 32 + Math.sin(angle + 0.25) * 25;
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
 
-            // Needle
-            ctx.strokeStyle = '#e2e8f0';
+            // Metallic Needle Highlight
+            ctx.strokeStyle = '#f1f5f9';
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(14, 50);
             ctx.lineTo(50, 14);
             ctx.stroke();
 
-            // Eye Hole
-            ctx.fillStyle = '#94a3b8';
+            // Needle Eye
+            ctx.fillStyle = '#cbd5e1';
             ctx.beginPath();
             ctx.arc(48, 16, 2.5, 0, Math.PI * 2);
             ctx.fill();
@@ -57,21 +58,21 @@
 
     <style>
         /* ==========================================================================
-           GLOBAL & HUD STYLES
+           1. CSS STYLES & INTERFACE DESIGN
            ========================================================================== */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #030712;
+            background-color: #020617;
             color: #f8fafc;
         }
 
@@ -84,6 +85,7 @@
             z-index: 1;
         }
 
+        /* Overlay UI System */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -95,33 +97,33 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 24px;
+            padding: 20px;
         }
 
-        /* Top Navigation & Stats Bar */
+        /* Header Bar */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(16px);
-            padding: 16px 28px;
-            border-radius: 20px;
+            padding: 14px 24px;
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
             pointer-events: auto;
         }
 
         .brand-title {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             font-weight: 800;
             letter-spacing: 1px;
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background: linear-gradient(135deg, #f59e0b, #eab308);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .stat-group {
@@ -130,91 +132,101 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             padding: 8px 16px;
             border-radius: 12px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: 0.88rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .stat-card .val {
             color: #fbbf24;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.05rem;
+            font-family: monospace;
+            font-size: 1rem;
         }
 
-        /* Bottom Left Timer Dashboard */
+        /* Bottom-Left Live Timer Dashboard */
         #timer-card {
             position: absolute;
             bottom: 24px;
             left: 24px;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.92);
             backdrop-filter: blur(16px);
-            padding: 18px 24px;
-            border-radius: 18px;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+            padding: 16px 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.7);
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             pointer-events: auto;
-            min-width: 260px;
+            min-width: 250px;
         }
 
         .timer-title {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             color: #94a3b8;
-            font-weight: 700;
+            font-weight: 800;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
         .timer-display {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 2.2rem;
+            font-family: monospace;
+            font-size: 2.1rem;
             font-weight: 800;
             color: #f8fafc;
             letter-spacing: 1px;
-            text-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
         }
 
         .timer-subtext {
-            font-size: 0.75rem;
-            color: #64748b;
+            font-size: 0.72rem;
+            color: #ef4444;
+            font-weight: 700;
         }
 
-        /* Signal Meter */
+        /* Micro Distance & Detector HUD */
         #detector-hud {
             position: absolute;
-            top: 100px;
+            top: 90px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.92);
             backdrop-filter: blur(12px);
-            padding: 10px 24px;
+            padding: 12px 24px;
             border-radius: 30px;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.4);
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 14px;
+            gap: 6px;
             opacity: 0;
             transition: opacity 0.3s ease;
             pointer-events: none;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
         }
 
         #detector-hud.active {
             opacity: 1;
         }
 
+        .detector-readout {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+            font-weight: 700;
+        }
+
         .signal-bar-bg {
-            width: 160px;
+            width: 180px;
             height: 10px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 6px;
@@ -224,29 +236,29 @@
         .signal-bar-fill {
             width: 0%;
             height: 100%;
-            background: linear-gradient(90deg, #ef4444, #22c55e);
-            transition: width 0.1s linear;
+            background: linear-gradient(90deg, #ef4444, #eab308, #22c55e);
+            transition: width 0.08s linear;
         }
 
-        /* Inventory Hotbar */
+        /* Hotbar Container */
         .hotbar-container {
             align-self: center;
             display: flex;
             gap: 12px;
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(16px);
-            padding: 12px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 14px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
             pointer-events: auto;
         }
 
         .hotbar-slot {
-            width: 68px;
-            height: 68px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 14px;
+            width: 64px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
             border: 2px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
@@ -258,14 +270,14 @@
         }
 
         .hotbar-slot:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-3px);
         }
 
         .hotbar-slot.active {
-            border-color: #fbbf24;
-            background: rgba(251, 191, 36, 0.15);
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.18);
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.35);
         }
 
         .hotbar-slot .key-bind {
@@ -278,11 +290,11 @@
         }
 
         .hotbar-slot .icon {
-            font-size: 1.6rem;
+            font-size: 1.5rem;
         }
 
         .hotbar-slot .label {
-            font-size: 0.65rem;
+            font-size: 0.62rem;
             color: #cbd5e1;
             margin-top: 2px;
             font-weight: 600;
@@ -291,41 +303,41 @@
         /* Action Prompts */
         .context-prompt {
             position: absolute;
-            bottom: 120px;
+            bottom: 110px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(245, 158, 11, 0.95);
-            color: #030712;
-            padding: 12px 28px;
-            border-radius: 30px;
+            color: #020617;
+            padding: 10px 24px;
+            border-radius: 24px;
             font-weight: 800;
-            font-size: 1rem;
-            box-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
+            font-size: 0.95rem;
+            box-shadow: 0 0 24px rgba(245, 158, 11, 0.4);
             display: none;
-            animation: pulse 1.5s infinite;
+            animation: pulse 1.4s infinite;
         }
 
         @keyframes pulse {
             0% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.04); }
+            50% { transform: translateX(-50%) scale(1.05); }
             100% { transform: translateX(-50%) scale(1); }
         }
 
-        /* Market / Upgrade Drawer */
+        /* Market / Drawer Button & Side Panel */
         .market-btn {
             position: absolute;
-            right: 24px;
-            top: 100px;
+            right: 20px;
+            top: 90px;
             background: #0d9488;
             color: white;
-            padding: 12px 20px;
-            border-radius: 14px;
+            padding: 10px 18px;
+            border-radius: 12px;
             border: none;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
             transition: all 0.2s ease;
         }
 
@@ -336,20 +348,20 @@
 
         .drawer-panel {
             position: absolute;
-            right: -460px;
+            right: -450px;
             top: 0;
-            width: 440px;
+            width: 430px;
             height: 100%;
             background: rgba(15, 23, 42, 0.96);
             backdrop-filter: blur(20px);
             z-index: 20;
             transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 32px 24px;
+            padding: 28px 22px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
             border-left: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: -20px 0 50px rgba(0,0,0,0.8);
+            box-shadow: -20px 0 50px rgba(0, 0, 0, 0.8);
         }
 
         .drawer-panel.open {
@@ -361,12 +373,12 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 16px;
+            padding-bottom: 14px;
         }
 
         .drawer-header h2 {
-            font-size: 1.25rem;
-            color: #fbbf24;
+            font-size: 1.2rem;
+            color: #f59e0b;
         }
 
         .close-drawer {
@@ -384,21 +396,21 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            padding-right: 6px;
+            gap: 12px;
+            padding-right: 4px;
         }
 
-        .upgrades-list::-webkit-scrollbar { width: 6px; }
+        .upgrades-list::-webkit-scrollbar { width: 5px; }
         .upgrades-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
 
         .upg-card {
             background: rgba(255, 255, 255, 0.03);
-            padding: 16px;
-            border-radius: 14px;
+            padding: 14px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
         .upg-card-head {
@@ -409,7 +421,7 @@
 
         .upg-card-head h4 {
             color: #f59e0b;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
         }
 
         .upg-card-head .lvl {
@@ -421,18 +433,19 @@
         }
 
         .upg-desc {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #94a3b8;
-            line-height: 1.4;
+            line-height: 1.35;
         }
 
         .btn-action {
-            background: #f97316;
+            background: #ea580c;
             color: white;
             border: none;
-            padding: 10px 14px;
+            padding: 9px 12px;
             border-radius: 8px;
             font-weight: 700;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -441,8 +454,8 @@
         }
 
         .btn-action:hover:not(:disabled) {
-            background: #fbbf24;
-            color: #030712;
+            background: #f59e0b;
+            color: #020617;
         }
 
         .btn-action:disabled {
@@ -451,11 +464,11 @@
             cursor: not-allowed;
         }
 
-        /* Notifications & World Float Text */
+        /* Notifications & Floating Screen Text */
         #toast-container {
             position: absolute;
-            top: 100px;
-            left: 24px;
+            top: 90px;
+            left: 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -466,9 +479,9 @@
         .toast-item {
             background: rgba(15, 23, 42, 0.95);
             color: #fff;
-            padding: 14px 20px;
-            border-radius: 12px;
-            border-left: 4px solid #fbbf24;
+            padding: 12px 18px;
+            border-radius: 10px;
+            border-left: 4px solid #f59e0b;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             font-size: 0.85rem;
             animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards, toastOut 0.4s 3.6s forwards;
@@ -480,7 +493,7 @@
         .world-text-float {
             position: absolute;
             font-weight: 900;
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             pointer-events: none;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
             animation: floatUpScreen 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -489,33 +502,36 @@
 
         @keyframes floatUpScreen {
             0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-80px) scale(1.15); opacity: 0; }
+            100% { transform: translateY(-70px) scale(1.15); opacity: 0; }
         }
     </style>
 
-    <!-- Three.js CDN -->
+    <!-- Include Three.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <!-- WebGL Canvas -->
+    <!-- THREE.JS WEBGL RENDER CANVAS -->
     <div id="render-canvas"></div>
 
-    <!-- Interface Overlay -->
+    <!-- USER INTERFACE OVERLAY -->
     <div id="ui-layer">
-        <!-- Top HUD -->
+        <!-- TOP HUD -->
         <div class="hud-header">
             <div class="brand-title">🌾 Haystack Simulator 3D</div>
             <div class="stat-group">
-                <div class="stat-card">🌾 Hay: <span id="val-hay" class="val">0</span></div>
+                <div class="stat-card">🌾 Straw: <span id="val-hay" class="val">0</span></div>
                 <div class="stat-card">🪙 Coins: <span id="val-coins" class="val">0</span></div>
                 <div class="stat-card">🪡 Needles: <span id="val-needles" class="val">0</span></div>
             </div>
         </div>
 
-        <!-- Proximity HUD -->
+        <!-- DETECTOR PROXIMITY HUD -->
         <div id="detector-hud">
-            <span style="font-size: 0.9rem; font-weight: 700;">📡 Signal:</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size: 0.85rem; font-weight: 800;">📡 RADAR SIGNAL</span>
+                <span id="detector-dist" class="detector-readout">0.000000m</span>
+            </div>
             <div class="signal-bar-bg">
                 <div class="signal-bar-fill" id="signal-bar"></div>
             </div>
@@ -523,16 +539,16 @@
 
         <button class="market-btn" onclick="toggleDrawer()">🛒 Market & Upgrades</button>
 
-        <div class="context-prompt" id="context-prompt">Press [E] or [Space] to Search</div>
+        <div class="context-prompt" id="context-prompt">Press [E] or [Space] to Search Haystack</div>
 
-        <!-- Bottom Left Timer Card -->
+        <!-- BOTTOM LEFT LIVE TIMER DASHBOARD -->
         <div id="timer-card">
-            <div class="timer-title">⏱️ Search Duration</div>
+            <div class="timer-title">⏱️ SEARCH DURATION</div>
             <div class="timer-display" id="timer-display">00:00:00</div>
-            <div class="timer-subtext" id="timer-subtext">Deep Search Target: ~30 Minutes</div>
+            <div class="timer-subtext">ULTRA HARD MODE: ~1-30 HRS SEARCH</div>
         </div>
 
-        <!-- Hotbar -->
+        <!-- INVENTORY TOOL HOTBAR -->
         <div class="hotbar-container">
             <div class="hotbar-slot active" id="slot-1" onclick="selectSlot(1)">
                 <span class="key-bind">1</span>
@@ -557,20 +573,20 @@
         </div>
     </div>
 
-    <!-- Notification Toast Container -->
+    <!-- TOAST NOTIFICATIONS -->
     <div id="toast-container"></div>
 
-    <!-- Upgrade Drawer -->
+    <!-- MARKET DRAWER PANEL -->
     <div class="drawer-panel" id="drawer-panel">
         <div class="drawer-header">
-            <h2>Farmer's Market & Gear</h2>
+            <h2>Farmer's Market & Upgrades</h2>
             <button class="close-drawer" onclick="toggleDrawer()">&times;</button>
         </div>
 
-        <!-- Quick Trade -->
-        <div style="background: rgba(255, 255, 255, 0.03); padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.06);">
-            <h3 style="color:#0d9488; font-size:1rem; margin-bottom:6px;">🧑‍🌾 Sell Raw Straw</h3>
-            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:12px;">Sell gathered hay for coins. 1 Straw = 1 Coin.</p>
+        <!-- QUICK STRAW TRADE -->
+        <div style="background: rgba(255, 255, 255, 0.03); padding: 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.06);">
+            <h3 style="color:#0d9488; font-size:0.95rem; margin-bottom:4px;">🧑‍🌾 Trade Raw Straw</h3>
+            <p style="font-size:0.78rem; color:#94a3b8; margin-bottom:10px;">Sell gathered straw for coins. Rate: 1 Straw = 1 Coin.</p>
             <div style="display:flex; gap:8px;">
                 <button class="btn-action" style="flex:1;" onclick="sellHay(1)">Sell 1</button>
                 <button class="btn-action" style="flex:1;" onclick="sellHay('half')">Sell 50%</button>
@@ -578,14 +594,14 @@
             </div>
         </div>
 
-        <h3 style="font-size: 1rem; color:#fbbf24; margin-top: 8px;">Tools & Equipment</h3>
+        <h3 style="font-size: 0.95rem; color:#f59e0b; margin-top: 6px;">Equipment & Tools</h3>
         <div class="upgrades-list" id="upgrades-list"></div>
     </div>
 
-    <!-- MAIN ENGINE CODE -->
+    <!-- MAIN ENGINE CODE SCRIPT -->
     <script>
         /* ==========================================================================
-           1. AUDIO SYNTHESIZER
+           2. PROCEDURAL SOUND SYNTHESIZER ENGINE (WEB AUDIO API)
            ========================================================================== */
         class AudioSynth {
             constructor() {
@@ -601,9 +617,10 @@
                 }
             }
 
+            // Straw Digging Noise
             playRustle() {
                 this.init();
-                let bufferSize = this.ctx.sampleRate * 0.14;
+                let bufferSize = this.ctx.sampleRate * 0.12;
                 let buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                 let data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) {
@@ -615,12 +632,12 @@
 
                 let filter = this.ctx.createBiquadFilter();
                 filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(800 + Math.random() * 600, this.ctx.currentTime);
-                filter.Q.setValueAtTime(3, this.ctx.currentTime);
+                filter.frequency.setValueAtTime(900 + Math.random() * 500, this.ctx.currentTime);
+                filter.Q.setValueAtTime(3.5, this.ctx.currentTime);
 
                 let gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.14);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
 
                 noise.connect(filter);
                 filter.connect(gain);
@@ -629,24 +646,26 @@
                 noise.start();
             }
 
+            // Metal Detector Radar Beep
             playBeep(pitchRatio = 1.0) {
                 this.init();
                 let osc = this.ctx.createOscillator();
                 let gain = this.ctx.createGain();
 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(520 * pitchRatio, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(550 * pitchRatio, this.ctx.currentTime);
 
                 gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.07);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
 
                 osc.start();
-                osc.stop(this.ctx.currentTime + 0.08);
+                osc.stop(this.ctx.currentTime + 0.07);
             }
 
+            // Discovery Fanfare FX
             playNeedleFound() {
                 this.init();
                 const now = this.ctx.currentTime;
@@ -656,19 +675,20 @@
                     let gain = this.ctx.createGain();
 
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.09);
 
-                    gain.gain.setValueAtTime(0.3, now + idx * 0.1);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.4);
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.35);
 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
 
-                    osc.start(now + idx * 0.1);
-                    osc.stop(now + idx * 0.1 + 0.4);
+                    osc.start(now + idx * 0.09);
+                    osc.stop(now + idx * 0.09 + 0.35);
                 });
             }
 
+            // Coin Trade Chime FX
             playCoin() {
                 this.init();
                 const now = this.ctx.currentTime;
@@ -677,23 +697,23 @@
 
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(987.77, now);
-                osc.frequency.setValueAtTime(1318.51, now + 0.08);
+                osc.frequency.setValueAtTime(1318.51, now + 0.07);
 
-                gain.gain.setValueAtTime(0.18, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                gain.gain.setValueAtTime(0.16, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
 
                 osc.start(now);
-                osc.stop(now + 0.25);
+                osc.stop(now + 0.24);
             }
         }
 
         const audio = new AudioSynth();
 
         /* ==========================================================================
-           2. GAME DATA STATE & PROLONGED SEARCH MECHANICS
+           3. GAME DATA STATE & ULTRA HARD MECHANICS
            ========================================================================== */
         let state = {
             hay: 0,
@@ -704,26 +724,26 @@
             autoHaySec: 0,
             autoSellSec: 0,
 
-            // Base discovery radius (Extremely small for a long search duration)
-            baseSearchRadius: 0.035,
-            needleSearchRadius: 0.035,
+            // ULTRA HARD BASE SEARCH RADIUS (0.008 World Collision Radius)
+            baseSearchRadius: 0.008,
+            needleSearchRadius: 0.008,
 
-            // Time Tracking
+            // Time Engine Variables
             searchStartTime: null,
             elapsedSeconds: 0,
 
             upgrades: {
-                pitchfork: { count: 0, cost: 25, baseCost: 25, power: 1, name: "Steel Pitchfork", desc: "+1 Hay collected per dig." },
-                sifter: { count: 0, cost: 100, baseCost: 100, power: 0.015, name: "Mesh Basket", desc: "Slightly expands search reach." },
-                detector: { count: 0, cost: 250, baseCost: 250, power: 1, name: "Metal Detector", desc: "Unlocks directional audio signal." },
-                magnet: { count: 0, cost: 750, baseCost: 750, power: 0.03, name: "High-Powered Magnet", desc: "Pulls hidden metal towards you." },
-                helper: { count: 0, cost: 300, baseCost: 300, power: 2, name: "Automated Helper", desc: "Gathers 2 Hay per second." },
-                trader: { count: 0, cost: 1000, baseCost: 1000, power: 5, name: "Merchant Contract", desc: "Automatically sells 5 Hay per second." }
+                pitchfork: { count: 0, cost: 30, baseCost: 30, power: 1, name: "Steel Pitchfork", desc: "+1 Straw gathered per dig action." },
+                sifter: { count: 0, cost: 120, baseCost: 120, power: 0.004, name: "Micro Mesh Basket", desc: "Slightly expands search collision reach." },
+                detector: { count: 0, cost: 300, baseCost: 300, power: 1, name: "Pulse Radar", desc: "Unlocks real-time 6-decimal distance tracking." },
+                magnet: { count: 0, cost: 900, baseCost: 900, power: 0.008, name: "Neodymium Magnet", desc: "Pulls hidden metals towards player." },
+                helper: { count: 0, cost: 400, baseCost: 400, power: 2, name: "Farmhand Helper", desc: "Passively collects 2 Straw every second." },
+                trader: { count: 0, cost: 1200, baseCost: 1200, power: 5, name: "Merchant Contract", desc: "Automatically sells 5 Straw per second." }
             }
         };
 
         /* ==========================================================================
-           3. THREE.JS 3D SCENE & EXPANDED HAYSTACK
+           4. THREE.JS 3D SCENE & VOLUMETRIC HAYSTACK
            ========================================================================== */
         let scene, camera, renderer;
         let playerGroup, playerBody, pitchforkTool;
@@ -732,27 +752,27 @@
         let farmerNPCGroup;
         let clock = new THREE.Clock();
 
-        // Dense Haystack Volume Configuration
-        const STRAW_COUNT = 6000;
+        // 10,000 Instanced Straw Volume Configuration
+        const STRAW_COUNT = 10000;
         const HAYSTACK_CENTER = new THREE.Vector3(0, 0, 0);
-        const HAYSTACK_RADIUS = 12.0;
-        const HAYSTACK_HEIGHT = 7.5;
+        const HAYSTACK_RADIUS = 14.0;
+        const HAYSTACK_HEIGHT = 8.5;
 
         let needlePosition = new THREE.Vector3();
 
         const LOCATIONS = {
-            FARMER: new THREE.Vector3(22, 0, -18)
+            FARMER: new THREE.Vector3(25, 0, -20)
         };
 
         const keys = { w: false, a: false, s: false, d: false };
-        let playerPos = new THREE.Vector3(0, 0, 18);
+        let playerPos = new THREE.Vector3(0, 0, 20);
 
         function init3D() {
             const container = document.getElementById('render-canvas');
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x030712);
-            scene.fog = new THREE.FogExp2(0x030712, 0.012);
+            scene.background = new THREE.Color(0x020617);
+            scene.fog = new THREE.FogExp2(0x020617, 0.01);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -763,41 +783,41 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
 
-            // Lighting
-            const ambient = new THREE.AmbientLight(0xfff5ea, 0.6);
+            // Ambient & World Lighting
+            const ambient = new THREE.AmbientLight(0xfff1f2, 0.55);
             scene.add(ambient);
 
-            const moonLight = new THREE.DirectionalLight(0xbae6fd, 0.9);
-            moonLight.position.set(40, 60, 30);
+            const moonLight = new THREE.DirectionalLight(0xe0f2fe, 0.85);
+            moonLight.position.set(45, 70, 35);
             moonLight.castShadow = true;
             moonLight.shadow.mapSize.width = 2048;
             moonLight.shadow.mapSize.height = 2048;
             moonLight.shadow.camera.near = 0.5;
-            moonLight.shadow.camera.far = 150;
-            const d = 45;
+            moonLight.shadow.camera.far = 160;
+            const d = 50;
             moonLight.shadow.camera.left = -d;
             moonLight.shadow.camera.right = d;
             moonLight.shadow.camera.top = d;
             moonLight.shadow.camera.bottom = -d;
             scene.add(moonLight);
 
-            const lanternLight = new THREE.PointLight(0xf59e0b, 2.0, 35);
-            lanternLight.position.set(0, 10, 0);
+            const lanternLight = new THREE.PointLight(0xf59e0b, 2.2, 40);
+            lanternLight.position.set(0, 12, 0);
             scene.add(lanternLight);
 
-            // Build Environment
+            // Construct 3D Environments
             buildTerrain();
             buildVolumetricHaystack();
             spawnRandomHiddenNeedle();
             buildPlayerCharacter();
             buildFarmerNPC();
 
-            // Event Listeners
+            // Event Handlers
             window.addEventListener('resize', onWindowResize);
             window.addEventListener('keydown', (e) => handleKey(e, true));
             window.addEventListener('keyup', (e) => handleKey(e, false));
 
-            // Start Search Timer
+            // Start Live Search Timer
             state.searchStartTime = Date.now();
 
             renderUpgradesUI();
@@ -807,28 +827,28 @@
         }
 
         /* ==========================================================================
-           4. PROCEDURAL GENERATORS & SCENE SETUP
+           5. PROCEDURAL MESH GENERATORS
            ========================================================================== */
 
         function buildTerrain() {
-            const groundGeo = new THREE.PlaneGeometry(200, 200, 32, 32);
+            const groundGeo = new THREE.PlaneGeometry(240, 240, 32, 32);
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.95 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Fence Ring
-            for (let i = 0; i < 28; i++) {
-                let angle = (i / 28) * Math.PI * 2;
-                let r = 40;
+            // Boundary Fence Ring
+            for (let i = 0; i < 32; i++) {
+                let angle = (i / 32) * Math.PI * 2;
+                let r = 48;
                 let x = Math.cos(angle) * r;
                 let z = Math.sin(angle) * r;
 
-                const postGeo = new THREE.BoxGeometry(0.5, 2.5, 0.5);
+                const postGeo = new THREE.BoxGeometry(0.5, 2.6, 0.5);
                 const postMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
                 const post = new THREE.Mesh(postGeo, postMat);
-                post.position.set(x, 1.25, z);
+                post.position.set(x, 1.3, z);
                 post.castShadow = true;
                 scene.add(post);
             }
@@ -837,7 +857,7 @@
         function buildVolumetricHaystack() {
             haystackGroup = new THREE.Group();
 
-            // Inner Mound Core
+            // Inner Core Mound
             const domeGeo = new THREE.SphereGeometry(HAYSTACK_RADIUS * 0.9, 20, 16);
             domeGeo.scale(1.0, HAYSTACK_HEIGHT / HAYSTACK_RADIUS, 1.0);
             const domeMat = new THREE.MeshStandardMaterial({ color: 0x713f12, roughness: 1.0 });
@@ -847,8 +867,8 @@
             domeCore.receiveShadow = true;
             haystackGroup.add(domeCore);
 
-            // Straw Blade Geometry
-            const strawGeo = new THREE.ConeGeometry(0.045, 1.4, 4);
+            // 10,000 Instanced Straw Blades
+            const strawGeo = new THREE.ConeGeometry(0.04, 1.5, 4);
             const strawMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.85, metalness: 0.05 });
 
             strawInstancedMesh = new THREE.InstancedMesh(strawGeo, strawMat, STRAW_COUNT);
@@ -889,28 +909,28 @@
         function spawnRandomHiddenNeedle() {
             if (hiddenNeedleMesh) scene.remove(hiddenNeedleMesh);
 
-            // Hide the needle deep inside the volumetric mound
-            let r = (0.2 + Math.random() * 0.75) * HAYSTACK_RADIUS;
+            // Random position deep within the volumetric haystack radius
+            let r = (0.25 + Math.random() * 0.7) * HAYSTACK_RADIUS;
             let angle = Math.random() * Math.PI * 2;
             let x = Math.cos(angle) * r;
             let z = Math.sin(angle) * r;
-            let y = 0.2 + Math.random() * (HAYSTACK_HEIGHT * 0.7);
+            let y = 0.2 + Math.random() * (HAYSTACK_HEIGHT * 0.65);
 
             needlePosition.set(x, y, z);
 
             const needleGroup = new THREE.Group();
-            const bodyGeo = new THREE.CylinderGeometry(0.012, 0.025, 1.2, 12);
+            const bodyGeo = new THREE.CylinderGeometry(0.01, 0.02, 1.2, 12);
             const needleMat = new THREE.MeshStandardMaterial({
                 color: 0xffffff,
-                metalness: 0.95,
-                roughness: 0.1,
+                metalness: 0.98,
+                roughness: 0.05,
                 emissive: 0x38bdf8,
-                emissiveIntensity: 0.3
+                emissiveIntensity: 0.4
             });
             const needleBody = new THREE.Mesh(bodyGeo, needleMat);
             needleGroup.add(needleBody);
 
-            const eyeGeo = new THREE.TorusGeometry(0.04, 0.01, 8, 16);
+            const eyeGeo = new THREE.TorusGeometry(0.035, 0.008, 8, 16);
             const eyeMesh = new THREE.Mesh(eyeGeo, needleMat);
             eyeMesh.position.y = 0.58;
             needleGroup.add(eyeMesh);
@@ -991,7 +1011,7 @@
         }
 
         /* ==========================================================================
-           5. CONTROLS, SEARCH & REAL-TIME TIMER ENGINE
+           6. CONTROLS, DIGGING & PROXIMITY RADAR ENGINE
            ========================================================================== */
 
         function handleKey(e, isDown) {
@@ -1034,27 +1054,26 @@
 
         function digHaystackAction() {
             pitchforkTool.rotation.x = Math.PI / 1.8;
-            setTimeout(() => pitchforkTool.rotation.x = Math.PI / 6, 200);
+            setTimeout(() => pitchforkTool.rotation.x = Math.PI / 6, 180);
 
             audio.playRustle();
 
             let hayGained = state.searchPower;
             state.hay += hayGained;
 
-            spawnScreenFloatText(`+${hayGained} Hay 🌾`, playerPos, "#fbbf24");
+            spawnScreenFloatText(`+${hayGained} Straw 🌾`, playerPos, "#f59e0b");
 
-            // Evaluate Needle Discovery Logic
+            // Evaluate Ultra-Hard Collision Logic
             let distToNeedle = playerPos.distanceTo(needlePosition);
             let currentRadius = state.needleSearchRadius;
 
-            // Apply slot multipliers
             if (state.activeSlot === 2) currentRadius *= 1.8;
             if (state.activeSlot === 4) currentRadius *= 2.5;
 
             if (distToNeedle <= currentRadius) {
-                // Needle Found
+                // NEEDLE DISCOVERED!
                 state.needles++;
-                let coinBonus = 5000;
+                let coinBonus = 10000;
                 state.coins += coinBonus;
 
                 audio.playNeedleFound();
@@ -1063,9 +1082,8 @@
                 spawnScreenFloatText(`🪡 NEEDLE DISCOVERED! (+${coinBonus} Coins)`, needlePosition, "#ef4444");
 
                 let finalTime = formatTimer(state.elapsedSeconds);
-                showToast(`🎉 UNBELIEVABLE! You found the needle after ${finalTime}! (+${coinBonus} Coins)`);
+                showToast(`🏆 MIRACLE! You discovered the needle after ${finalTime}! (+${coinBonus} Coins)`);
 
-                // Reset Search Timer & Spawn New Needle
                 setTimeout(() => {
                     state.searchStartTime = Date.now();
                     spawnRandomHiddenNeedle();
@@ -1086,10 +1104,10 @@
                 state.coins += toSell;
                 audio.playCoin();
                 spawnScreenFloatText(`+${toSell} Coins 🪙`, LOCATIONS.FARMER, "#0d9488");
-                showToast(`Sold ${toSell} Hay to the farmer for ${toSell} Coins!`);
+                showToast(`Sold ${toSell} Straw for ${toSell} Coins!`);
                 updateUI();
             } else {
-                showToast("No Hay available to sell!");
+                showToast("No Straw available to sell!");
             }
         }
 
@@ -1106,7 +1124,7 @@
         }
 
         /* ==========================================================================
-           6. TICK & RENDERING LOOP
+           7. TICK & RENDERING LOOP
            ========================================================================== */
 
         let lastBeepTime = 0;
@@ -1118,33 +1136,33 @@
             let delta = clock.getDelta();
             let elapsed = clock.getElapsedTime();
 
-            // Update Search Timer
+            // Live Timer Display
             if (state.searchStartTime) {
                 state.elapsedSeconds = Math.floor((Date.now() - state.searchStartTime) / 1000);
                 document.getElementById('timer-display').innerText = formatTimer(state.elapsedSeconds);
             }
 
-            // Player Physics
+            // Player Movement Physics
             updatePlayerPhysics(delta);
 
-            // Third-Person Camera Tracking
+            // Third Person Camera Mechanics
             camera.position.x = playerGroup.position.x;
-            camera.position.y = playerGroup.position.y + 10;
-            camera.position.z = playerGroup.position.z + 15;
+            camera.position.y = playerGroup.position.y + 11;
+            camera.position.z = playerGroup.position.z + 16;
             camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
 
-            // Volumetric Hay Displace Animation
+            // Volumetric Straw Physical Movement
             if (playerPos.distanceTo(HAYSTACK_CENTER) < HAYSTACK_RADIUS) {
                 strawInstancedMesh.rotation.y = Math.sin(elapsed * 3) * 0.015;
             }
 
-            // Detector Signal Calculations
+            // Proximity Radar Signal Updates
             updateMetalDetectorSignal(elapsed);
 
-            // Interaction Prompts
+            // Context Prompts
             updateContextPrompts();
 
-            // Idle Passive Income Tick
+            // Passive Generator Loop
             if (elapsed - lastPassiveSec >= 1.0) {
                 passiveIncomeTick();
                 lastPassiveSec = elapsed;
@@ -1163,11 +1181,11 @@
 
             if (moveDir.length() > 0) {
                 moveDir.normalize();
-                let moveSpeed = 10.0;
+                let moveSpeed = 10.5;
 
-                // Resistance inside haystack
+                // Physics slowdown inside haystack mound
                 if (playerPos.distanceTo(HAYSTACK_CENTER) < HAYSTACK_RADIUS) {
-                    moveSpeed = 4.0;
+                    moveSpeed = 4.2;
                 }
 
                 playerPos.x += moveDir.x * moveSpeed * delta;
@@ -1184,15 +1202,16 @@
 
         function updateMetalDetectorSignal(elapsed) {
             let distToNeedle = playerPos.distanceTo(needlePosition);
-            let maxDist = 25.0;
+            let maxDist = 30.0;
             let signalRatio = Math.max(0, Math.min(1, 1 - (distToNeedle / maxDist)));
 
-            document.getElementById('signal-bar').style.width = `${(signalRatio * 100).toFixed(0)}%`;
+            document.getElementById('signal-bar').style.width = `${(Math.pow(signalRatio, 2) * 100).toFixed(1)}%`;
+            document.getElementById('detector-dist').innerText = `${distToNeedle.toFixed(6)}m`;
 
-            if (state.activeSlot === 3 && signalRatio > 0.05) {
-                let beepInterval = 1.5 - (signalRatio * 1.35);
+            if (state.activeSlot === 3 && signalRatio > 0.02) {
+                let beepInterval = 1.6 - (signalRatio * 1.48);
                 if (elapsed - lastBeepTime >= beepInterval) {
-                    audio.playBeep(0.7 + signalRatio * 0.9);
+                    audio.playBeep(0.7 + signalRatio * 0.95);
                     lastBeepTime = elapsed;
                 }
             }
@@ -1229,7 +1248,7 @@
         }
 
         /* ==========================================================================
-           7. UPGRADES & INTERFACE MANAGERS
+           8. UPGRADES & INTERFACE RENDERING
            ========================================================================== */
 
         function buyUpgrade(key) {
@@ -1237,7 +1256,7 @@
             if (state.coins >= upg.cost) {
                 state.coins -= upg.cost;
                 upg.count++;
-                upg.cost = Math.floor(upg.baseCost * Math.pow(1.25, upg.count));
+                upg.cost = Math.floor(upg.baseCost * Math.pow(1.26, upg.count));
 
                 recalculateStats();
                 renderUpgradesUI();
