@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scream and Run - Brightened Edition</title>
+    <title>Scream and Run - Atmospheric Horror</title>
     <style>
         * {
             box-sizing: border-box;
@@ -11,7 +11,7 @@
             padding: 0;
         }
         body {
-            background-color: #050508;
+            background-color: #000;
             color: #fff;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
@@ -28,7 +28,7 @@
             left: 50%;
             width: 6px;
             height: 6px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
@@ -39,12 +39,12 @@
             top: 20px;
             left: 20px;
             z-index: 5;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.8);
             padding: 16px;
             border-radius: 6px;
-            border: 1px solid #555;
+            border: 1px solid #333;
             pointer-events: none;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
         .hud-item {
             margin-bottom: 8px;
@@ -55,8 +55,8 @@
         #stamina-container {
             width: 200px;
             height: 10px;
-            background: #222222;
-            border: 1px solid #666;
+            background: #1a1a1a;
+            border: 1px solid #444;
             margin-top: 4px;
         }
         #stamina-bar {
@@ -101,7 +101,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.92);
+            background: rgba(0, 0, 0, 0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -146,10 +146,23 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: #990000;
+            background: #660000;
             z-index: 9;
             display: none;
-            opacity: 0.9;
+            opacity: 1.0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #jumpscare-face {
+            font-size: 12rem;
+            color: #ffffff;
+            text-shadow: 0 0 30px #ff0000;
+            animation: pulse 0.05s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1.0) rotate(-2deg); }
+            100% { transform: scale(1.2) rotate(2deg); }
         }
         #vignette {
             position: absolute;
@@ -157,7 +170,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.85);
             pointer-events: none;
             z-index: 4;
         }
@@ -183,8 +196,8 @@
 
 <div id="start-screen" class="screen">
     <h1 class="danger">SCREAM AND RUN</h1>
-    <p>Search through the backpacks scattered in classrooms to find the key. Unlock the exit before the Cat in the Hat catches you.</p>
-    <p style="color:#aaa; font-size: 0.85rem; margin-bottom: 30px;">
+    <p>The school is dimly lit and misty. Search through backpacks to find the exit key, but watch out: the Cat in the Hat is faster and unpredictable.</p>
+    <p style="color:#888; font-size: 0.85rem; margin-bottom: 30px;">
         WASD = Move | SHIFT = Sprint | E = Search / Unlock Door | Mouse = Look Around
     </p>
     <button id="start-btn">ENTER THE SCHOOL</button>
@@ -192,7 +205,7 @@
 
 <div id="death-screen" class="screen hidden">
     <h1 class="danger">YOU DIED</h1>
-    <p>The monster caught you...</p>
+    <p>The Cat in the Hat ambushed you from the shadows...</p>
     <button onclick="location.reload()">RETRY</button>
 </div>
 
@@ -202,7 +215,9 @@
     <button onclick="location.reload()">PLAY AGAIN</button>
 </div>
 
-<div id="jumpscare-overlay"></div>
+<div id="jumpscare-overlay">
+    <div id="jumpscare-face">🎩👀</div>
+</div>
 
 <script>
 // ============================================================================
@@ -237,6 +252,10 @@ class AudioController {
         this.playTone(60 + Math.random() * 30, 'triangle', 0.08, 0.06);
     }
 
+    playMonsterStep() {
+        this.playTone(40 + Math.random() * 15, 'sawtooth', 0.15, 0.12);
+    }
+
     playSearch() {
         this.playTone(350, 'sine', 0.15, 0.08);
     }
@@ -255,17 +274,32 @@ class AudioController {
 
     playScream() {
         if (!this.ctx) return;
+        
+        // Screeching High Pitch
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(750, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(250, this.ctx.currentTime + 0.6);
-        gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+        osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.8);
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.6);
+        osc.stop(this.ctx.currentTime + 0.8);
+
+        // Low Horror Bass Burst
+        const bassOsc = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        bassOsc.type = 'square';
+        bassOsc.frequency.setValueAtTime(120, this.ctx.currentTime);
+        bassOsc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.8);
+        bassGain.gain.setValueAtTime(0.6, this.ctx.currentTime);
+        bassGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.ctx.destination);
+        bassOsc.start();
+        bassOsc.stop(this.ctx.currentTime + 0.8);
     }
 }
 
@@ -287,14 +321,19 @@ let isGameOver = false;
 let backpacks = [];
 let exitDoors = [];
 let flickeringLights = [];
+let obstacles = [];
 let monster, monsterHead;
-let monsterSpeed = 4.4;
+
+// HARDER DIFFICULTY SETTINGS
+let monsterSpeed = 5.2; // Faster monster speed
+let monsterTeleportTimer = 0;
 
 let raycaster, activeInteractable = null;
 let isLocked = false;
 const mouseSensitivity = 0.0022;
 let yaw = 0, pitch = 0;
 let footstepTimer = 0;
+let monsterStepTimer = 0;
 
 // ============================================================================
 // INITIALIZATION & ENVIRONMENT SETUP
@@ -302,28 +341,21 @@ let footstepTimer = 0;
 function init() {
     const container = document.getElementById('canvas-container');
 
-    // Scene with lighter background and lighter fog
+    // Balanced Fog and Background (Atmospheric Dark)
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222530);
-    
-    // Light, subtle fog instead of heavy black mist
-    scene.fog = new THREE.FogExp2(0x222530, 0.025);
+    scene.background = new THREE.Color(0x0c0d12);
+    scene.fog = new THREE.FogExp2(0x0c0d12, 0.06);
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 1.6, 0);
 
-    // Bright Ambient Light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
+    // Balanced Ambient Light
+    const ambientLight = new THREE.AmbientLight(0x222433, 1.2);
     scene.add(ambientLight);
 
-    // Directional Light for broad overhead illumination
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    sunLight.position.set(0, 20, 0);
-    scene.add(sunLight);
-
-    // Flashlight attached to Player Camera (brighter beam)
-    const flashlight = new THREE.SpotLight(0xffffff, 4.0, 30, Math.PI / 4, 0.5, 1);
+    // Player Flashlight
+    const flashlight = new THREE.SpotLight(0xfff0dd, 3.2, 22, Math.PI / 5, 0.4, 1);
     flashlight.position.set(0, 0, 0);
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight);
@@ -352,7 +384,7 @@ function init() {
 }
 
 // ============================================================================
-// PROCEDURAL OPAQUE TEXTURES & ARCHITECTURE
+// OPAQUE TEXTURES & ARCHITECTURE
 // ============================================================================
 function createTileTexture(colorA, colorB, canvasSize = 128) {
     const canvas = document.createElement('canvas');
@@ -376,27 +408,27 @@ function createTileTexture(colorA, colorB, canvasSize = 128) {
     return texture;
 }
 
-// Fully Opaque Standard Materials (Brighter shades)
-const wallTexture = createTileTexture('#5a5d6e', '#3f4252');
+// Opaque Standard Materials (Medium Dark Tone)
+const wallTexture = createTileTexture('#2a2c38', '#1a1b24');
 wallTexture.repeat.set(4, 2);
 
-const floorTexture = createTileTexture('#4a4d5a', '#323542');
+const floorTexture = createTileTexture('#1e202a', '#101117');
 floorTexture.repeat.set(12, 12);
 
 const wallMaterial = new THREE.MeshStandardMaterial({ 
     map: wallTexture, 
-    roughness: 0.7, 
+    roughness: 0.9, 
     metalness: 0.1 
 });
 
 const floorMaterial = new THREE.MeshStandardMaterial({ 
     map: floorTexture, 
-    roughness: 0.6, 
+    roughness: 0.8, 
     metalness: 0.1 
 });
 
 const doorMaterialLocked = new THREE.MeshStandardMaterial({ 
-    color: 0xcc2222, 
+    color: 0xaa1111, 
     roughness: 0.5, 
     metalness: 0.3 
 });
@@ -409,7 +441,7 @@ function buildSchoolStructure() {
     scene.add(floor);
 
     // Ceiling
-    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x666a7a, roughness: 0.8 });
+    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x14151c, roughness: 1.0 });
     const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
     ceiling.position.y = 4.2;
     ceiling.rotation.x = Math.PI / 2;
@@ -430,6 +462,12 @@ function buildSchoolStructure() {
     buildWall(0, 2.1, 0, 16, 4.2, 1);
     buildWall(0, 2.1, 16, 1, 4.2, 16);
 
+    // Extra Obstacles for Harder Navigation
+    buildObstacle(-8, 1.0, -8, 2, 2, 2);
+    buildObstacle(8, 1.0, 8, 2, 2, 2);
+    buildObstacle(-15, 1.0, 20, 3, 2, 1);
+    buildObstacle(15, 1.0, -20, 3, 2, 1);
+
     // Exit Doors
     const doorGeo = new THREE.BoxGeometry(4.5, 3.8, 0.4);
     const door = new THREE.Mesh(doorGeo, doorMaterialLocked);
@@ -444,6 +482,16 @@ function buildWall(x, y, z, w, h, d) {
     const wall = new THREE.Mesh(geo, wallMaterial);
     wall.position.set(x, y, z);
     scene.add(wall);
+    obstacles.push(wall);
+}
+
+function buildObstacle(x, y, z, w, h, d) {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x22242e, roughness: 0.9 });
+    const obstacle = new THREE.Mesh(geo, mat);
+    obstacle.position.set(x, y, z);
+    scene.add(obstacle);
+    obstacles.push(obstacle);
 }
 
 // ============================================================================
@@ -467,15 +515,15 @@ function spawnFlickeringOverheadLights() {
         fixture.position.set(pos.x, pos.y - 0.08, pos.z);
         scene.add(fixture);
 
-        // Point Light Source (Increased brightness)
-        const pLight = new THREE.PointLight(0xfff5ea, 4.5, 22, 2);
+        // Point Light Source
+        const pLight = new THREE.PointLight(0xffddaa, 2.8, 18, 2);
         pLight.position.set(pos.x, pos.y - 0.3, pos.z);
         scene.add(pLight);
 
         flickeringLights.push({
             light: pLight,
             fixtureMat: fixtureMat,
-            baseIntensity: 4.5,
+            baseIntensity: 2.8,
             nextFlicker: 0
         });
     });
@@ -484,17 +532,17 @@ function spawnFlickeringOverheadLights() {
 function updateFlickeringLights(time) {
     flickeringLights.forEach(item => {
         if (time > item.nextFlicker) {
-            // Random flickering interval and intensity variation
-            const isOff = Math.random() < 0.25;
+            // Rapid & Frequent Flickering
+            const isOff = Math.random() < 0.4;
             if (isOff) {
-                item.light.intensity = Math.random() * 1.5 + 0.5;
-                item.fixtureMat.color.setHex(0x888888);
-                if (Math.random() < 0.15) snd.playFlickerHum();
+                item.light.intensity = Math.random() * 0.3;
+                item.fixtureMat.color.setHex(0x222222);
+                if (Math.random() < 0.2) snd.playFlickerHum();
             } else {
-                item.light.intensity = item.baseIntensity + (Math.random() * 1.0 - 0.5);
+                item.light.intensity = item.baseIntensity + (Math.random() * 0.8 - 0.4);
                 item.fixtureMat.color.setHex(0xffffff);
             }
-            item.nextFlicker = time + (Math.random() * 0.25 + 0.05);
+            item.nextFlicker = time + (Math.random() * 0.18 + 0.04);
         }
     });
 }
@@ -516,14 +564,14 @@ function spawnBackpacks() {
 
         // Backpack Main Body
         const bodyGeo = new THREE.BoxGeometry(0.7, 0.9, 0.45);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97e28, roughness: 0.8 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc8701a, roughness: 0.8 });
         const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
         bodyMesh.position.y = 0.45;
         group.add(bodyMesh);
 
         // Front Pocket
         const pocketGeo = new THREE.BoxGeometry(0.5, 0.45, 0.15);
-        const pocketMat = new THREE.MeshStandardMaterial({ color: 0xa85e1b, roughness: 0.8 });
+        const pocketMat = new THREE.MeshStandardMaterial({ color: 0x944e0e, roughness: 0.8 });
         const pocketMesh = new THREE.Mesh(pocketGeo, pocketMat);
         pocketMesh.position.set(0, 0.3, 0.25);
         group.add(pocketMesh);
@@ -548,20 +596,20 @@ function spawnMonster() {
 
     // Body
     const bodyGeo = new THREE.CylinderGeometry(0.45, 0.55, 2.0, 16);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.9 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     body.position.y = 1.0;
     monster.add(body);
 
     // Head
     const headGeo = new THREE.SphereGeometry(0.38, 16, 16);
-    const headMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+    const headMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
     monsterHead = new THREE.Mesh(headGeo, headMat);
     monsterHead.position.y = 2.2;
     monster.add(monsterHead);
 
     // Red Glowing Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.065, 8, 8);
+    const eyeGeo = new THREE.SphereGeometry(0.07, 8, 8);
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
     eyeL.position.set(-0.14, 2.25, 0.32);
@@ -572,7 +620,7 @@ function spawnMonster() {
 
     // Tall Red & White Striped Hat
     const brimGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.06, 16);
-    const brimMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const brimMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
     const brim = new THREE.Mesh(brimGeo, brimMat);
     brim.position.y = 2.58;
     monster.add(brim);
@@ -580,7 +628,7 @@ function spawnMonster() {
     for (let i = 0; i < 5; i++) {
         const stripeGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.22, 16);
         const stripeMat = new THREE.MeshStandardMaterial({
-            color: (i % 2 === 0) ? 0xee2222 : 0xffffff,
+            color: (i % 2 === 0) ? 0xcc1111 : 0xdddddd,
             roughness: 0.5
         });
         const stripe = new THREE.Mesh(stripeGeo, stripeMat);
@@ -726,17 +774,17 @@ function animate() {
     }
 
     if (isLocked && !isGameOver) {
-        // Stamina & Speed Logic
+        // Stamina Mechanics (Drains Faster)
         let currentSpeed = 3.3;
         if (isSprinting && stamina > 0) {
-            currentSpeed = 6.2;
-            stamina = Math.max(0, stamina - 28 * delta);
+            currentSpeed = 5.8;
+            stamina = Math.max(0, stamina - 35 * delta);
         } else {
-            stamina = Math.min(100, stamina + 16 * delta);
+            stamina = Math.min(100, stamina + 12 * delta);
         }
         document.getElementById('stamina-bar').style.width = stamina + '%';
 
-        // Movement Friction & Velocity Acceleration
+        // Movement Friction & Acceleration
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
 
@@ -758,7 +806,7 @@ function animate() {
         camera.position.x = Math.max(-33.5, Math.min(33.5, camera.position.x));
         camera.position.z = Math.max(-33.5, Math.min(33.5, camera.position.z));
 
-        // Footsteps
+        // Player Footstep Sounds
         if (moveForward || moveBackward || moveLeft || moveRight) {
             footstepTimer += delta;
             if (footstepTimer > (isSprinting ? 0.28 : 0.48)) {
@@ -767,8 +815,27 @@ function animate() {
             }
         }
 
-        // --- MONSTER AI HUNTING & CHASE ---
+        // --- MONSTER AI HUNTING, AMBUSH & CHASE ---
         const distToPlayer = monster.position.distanceTo(camera.position);
+
+        // Monster Heavy Footstep Sounds
+        monsterStepTimer += delta;
+        if (monsterStepTimer > Math.max(0.2, distToPlayer / 15)) {
+            snd.playMonsterStep();
+            monsterStepTimer = 0;
+        }
+
+        // Random Ambush Teleport Mechanic (Increases Hardness)
+        monsterTeleportTimer += delta;
+        if (monsterTeleportTimer > 12.0) {
+            monsterTeleportTimer = 0;
+            if (distToPlayer > 18.0) {
+                // Ambush closer to player
+                const offsetAngle = Math.random() * Math.PI * 2;
+                monster.position.x = camera.position.x + Math.cos(offsetAngle) * 10.0;
+                monster.position.z = camera.position.z + Math.sin(offsetAngle) * 10.0;
+            }
+        }
 
         const monsterDir = new THREE.Vector3().subVectors(camera.position, monster.position);
         monsterDir.y = 0;
@@ -778,7 +845,7 @@ function animate() {
         monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
 
         // Catch / Jumpscare Trigger
-        if (distToPlayer < 1.4) {
+        if (distToPlayer < 1.5) {
             triggerJumpscare();
         }
 
@@ -793,13 +860,16 @@ function triggerJumpscare() {
     snd.playScream();
     document.exitPointerLock();
 
+    // Snap Camera to Face Monster
+    camera.lookAt(monster.position);
+
     const scare = document.getElementById('jumpscare-overlay');
-    scare.style.display = 'block';
+    scare.style.display = 'flex';
 
     setTimeout(() => {
         scare.style.display = 'none';
         document.getElementById('death-screen').classList.remove('hidden');
-    }, 450);
+    }, 700);
 }
 
 function onWindowResize() {
